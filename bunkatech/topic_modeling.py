@@ -1,11 +1,11 @@
 import pandas as pd
 import warnings
 from sklearn.cluster import KMeans
-from semantics.extract_terms import extract_terms_df
-from semantics.indexer import indexer
-from semantics.get_embeddings import get_embeddings
-from visualization.make_bubble import make_bubble
-from specificity import specificity
+from .semantics.extract_terms import extract_terms_df
+from .semantics.indexer import indexer
+from .semantics.get_embeddings import get_embeddings
+from .visualization.make_bubble import make_bubble
+from .specificity import specificity
 from sklearn.cluster import OPTICS
 
 

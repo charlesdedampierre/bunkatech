@@ -1,5 +1,5 @@
 import pandas as pd
-from specificity import specificity
+from .specificity import specificity
 
 
 def hierarchical_clusters_label(
