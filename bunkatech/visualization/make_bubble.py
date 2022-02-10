@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 import plotly
-from sklearn.cluster import KMeans
+
 import numpy as np
 
 

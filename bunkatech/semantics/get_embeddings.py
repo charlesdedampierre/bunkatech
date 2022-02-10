@@ -20,7 +20,7 @@ def get_embeddings(
         emb = model.encode(docs, show_progress_bar=True)
 
     elif model == "tfidf":
-        model = TfidfVectorizer(max_features=5000)
+        model = TfidfVectorizer(max_features=10000)
         sentences = list(data[field])
         emb = model.fit_transform(sentences)
     else:

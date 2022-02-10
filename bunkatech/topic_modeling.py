@@ -8,7 +8,6 @@ from .visualization.make_bubble import make_bubble
 from .specificity import specificity
 from sklearn.cluster import OPTICS
 
-
 warnings.simplefilter(action="ignore", category=FutureWarning)
 pd.options.mode.chained_assignment = None
 
