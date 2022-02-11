@@ -12,6 +12,8 @@ from .hierarchical_clusters_label import hierarchical_clusters_label
 from .visualization.make_bubble import make_bubble
 from .visualization.sankey import make_sankey
 from .visualization.topics_treemap import topics_treemap
+from .visualization.topics_sunburst import topics_sunburst
+
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 pd.options.mode.chained_assignment = None
@@ -101,26 +103,10 @@ def nested_topic_modeling(
     # Make treemap
     treemap = topics_treemap(nested_topics=h_clusters_names)
 
+    # Make sunburst
+    sunburst = topics_sunburst(nested_topics=h_clusters_names)
+
     # Make Sankey Diagram
     sankey = make_sankey(h_clusters_names, field="Dataset", index_var=index_var)
 
-    return treemap, sankey
-
-
-if __name__ == "__main__":
-
-    # Load Data
-    df = pd.read_csv("./data/imdb_movies.csv", index_col=[0])
-    treemap, sankey = nested_topic_modeling(
-        df,
-        text_var="description",
-        index_var="imdb",
-        sample_size=2000,
-        sample_terms=3000,
-        embeddings_model="tfidf",
-    )
-    plotly.offline.plot(sankey, auto_open=True, filename="saved_graph/sankey.html")
-    plotly.offline.plot(treemap, auto_open=True, filename="saved_graph/treemap.html")
-
-    plotly.offline.plot(sankey, auto_open=True, filename="saved_graph/sankey.html")
-    plotly.offline.plot(treemap, auto_open=True, filename="saved_graph/treemap.html")
+    return treemap, sankey, sunburst
