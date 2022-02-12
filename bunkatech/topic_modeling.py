@@ -12,7 +12,9 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 pd.options.mode.chained_assignment = None
 
 
-def topic_modeling(docs: list, topic_number=20):
+def topic_modeling(
+    docs: list, topic_number=20, ngrams=(1, 2), ents=False, sample_terms=2000
+):
 
     df = pd.DataFrame(docs, columns=["text_var"])
 
@@ -45,13 +47,13 @@ def topic_modeling(docs: list, topic_number=20):
         df,
         text_var="text_var",
         limit=2000,
-        sample_size=3000,
-        ngs=False,  # ngrams
-        ents=False,  # entities
-        ncs=True,  # nouns
+        sample_size=sample_terms,
+        ngs=True,  # ngrams
+        ents=ents,  # entities
+        ncs=False,  # nouns
         drop_emoji=True,
         remove_punctuation=False,
-        ngrams=(2, 2),
+        ngrams=ngrams,
         include_pos=["NOUN", "PROPN", "ADJ"],
         include_types=["PERSON", "ORG"],
         language="en",
