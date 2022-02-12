@@ -28,6 +28,10 @@ def nested_topic_modeling(
     embeddings_model: str = "tfidf",
     embedding_path: str = None,
     nested_clusters_path: str = None,
+    ngrams=(1, 2),
+    ents=False,
+    language="en",
+    db_path=".",
 ):
     """[summary]
 
@@ -73,14 +77,14 @@ def nested_topic_modeling(
         limit=4000,
         sample_size=sample_terms,
         ngs=True,  # ngrams
-        ents=False,  # entities
+        ents=ents,  # entities
         ncs=False,  # nouns
         drop_emoji=True,
         remove_punctuation=False,
-        ngrams=(1, 2),
+        ngrams=ngrams,
         include_pos=["NOUN", "PROPN", "ADJ"],
         include_types=["PERSON", "ORG"],
-        language="en",
+        language=language,
     )
 
     # Index with the list of original words
@@ -90,7 +94,7 @@ def nested_topic_modeling(
     list_terms = df_terms["text"].tolist()
 
     # Index the extracted terms
-    df_indexed = indexer(df[text_var].tolist(), list_terms, db_path=".")
+    df_indexed = indexer(df[text_var].tolist(), list_terms, db_path=db_path)
 
     # get the Main form and the lemma
     df_indexed_full = pd.merge(df_indexed, df_terms, left_on="words", right_on="text")

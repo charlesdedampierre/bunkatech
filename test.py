@@ -14,11 +14,16 @@ treemap, sankey, sunburst = nested_topic_modeling(
     df,
     text_var="text",
     index_var="bindex",
-    sample_size=5000,
-    sample_terms=3000,
+    sample_size=200,
+    sample_terms=200,
     embeddings_model="tfidf",
     embedding_path=None,
     nested_clusters_path=None,
+    ngrams=(1, 2),
+    ents=False,
+    language="en",
+    # db_path="/Volumes/OutFriend",
+    db_path=".",
 )
 plotly.offline.plot(sankey, auto_open=True, filename="saved_graph/sankey.html")
 plotly.offline.plot(treemap, auto_open=True, filename="saved_graph/treemap.html")

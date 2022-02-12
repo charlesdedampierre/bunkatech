@@ -13,7 +13,12 @@ pd.options.mode.chained_assignment = None
 
 
 def topic_modeling(
-    docs: list, topic_number=20, ngrams=(1, 2), ents=False, sample_terms=2000
+    docs: list,
+    topic_number=20,
+    ngrams=(1, 2),
+    ents=False,
+    sample_terms=2000,
+    model="tfidf",
 ):
 
     df = pd.DataFrame(docs, columns=["text_var"])
@@ -23,7 +28,7 @@ def topic_modeling(
     embeddings_reduced, _ = get_embeddings(
         df,
         field="text_var",
-        model="tfidf",
+        model=model,
         model_path="distiluse-base-multilingual-cased-v1",  # workds if sbert is chosen
     )
 
