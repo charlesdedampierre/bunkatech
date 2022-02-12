@@ -1,7 +1,7 @@
 import pandas as pd
 import plotly
 import warnings
-
+import numpy as np
 from .semantics.extract_terms import extract_terms_df
 from .semantics.indexer import indexer
 from .semantics.get_embeddings import get_embeddings
@@ -26,6 +26,8 @@ def nested_topic_modeling(
     sample_size: int = 500,
     sample_terms: int = 1000,
     embeddings_model: str = "tfidf",
+    embedding_path: str = None,
+    nested_clusters_path: str = None,
 ):
     """[summary]
 
@@ -56,6 +58,9 @@ def nested_topic_modeling(
         model_path="distiluse-base-multilingual-cased-v1",  # workds if sbert is chosen
     )
 
+    if embedding_path is not None:
+        np.save(save_embedding_path + "/embeddings_reduced.npy", embeddings_reduced)
+
     # Create Nested clusters.
     df_emb = pd.DataFrame(embeddings_reduced)
     df_emb[index_var] = df[index_var]
@@ -72,7 +77,7 @@ def nested_topic_modeling(
         ncs=False,  # nouns
         drop_emoji=True,
         remove_punctuation=False,
-        ngrams=(2, 2),
+        ngrams=(1, 2),
         include_pos=["NOUN", "PROPN", "ADJ"],
         include_types=["PERSON", "ORG"],
         language="en",
@@ -99,6 +104,11 @@ def nested_topic_modeling(
     h_clusters_label = pd.merge(h_clusters, df_enrich, on=index_var)
     h_clusters_label = h_clusters_label.rename(columns={"main form": "lemma"})
     h_clusters_names = hierarchical_clusters_label(h_clusters_label)
+
+    if nested_clusters_path is not None:
+        h_clusters_names.to_csv(
+            save_nested_clusters + "/h_clusters_names.csv", index=False
+        )
 
     # Make treemap
     treemap = topics_treemap(nested_topics=h_clusters_names, index_var=index_var)
