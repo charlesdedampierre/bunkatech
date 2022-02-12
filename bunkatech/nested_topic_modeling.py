@@ -59,7 +59,7 @@ def nested_topic_modeling(
     )
 
     if embedding_path is not None:
-        np.save(save_embedding_path + "/embeddings_reduced.npy", embeddings_reduced)
+        np.save(embedding_path + "/embeddings_reduced.npy", embeddings_reduced)
 
     # Create Nested clusters.
     df_emb = pd.DataFrame(embeddings_reduced)
@@ -107,7 +107,7 @@ def nested_topic_modeling(
 
     if nested_clusters_path is not None:
         h_clusters_names.to_csv(
-            save_nested_clusters + "/h_clusters_names.csv", index=False
+            nested_clusters_path + "/h_clusters_names.csv", index=False
         )
 
     # Make treemap
