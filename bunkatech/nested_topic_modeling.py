@@ -49,7 +49,7 @@ def nested_topic_modeling(
     df = df[df[text_var].notna()]  # cautious not to let any nan
     df = df.reset_index(drop=True)
 
-    embeddings_reduced, _ = get_embeddings(
+    embeddings_reduced, embeddings_full = get_embeddings(
         df,
         field=text_var,
         model=embeddings_model,
@@ -69,7 +69,7 @@ def nested_topic_modeling(
         sample_size=sample_terms,
         ngs=True,  # ngrams
         ents=False,  # entities
-        ncs=True,  # nouns
+        ncs=False,  # nouns
         drop_emoji=True,
         remove_punctuation=False,
         ngrams=(2, 2),
@@ -101,10 +101,10 @@ def nested_topic_modeling(
     h_clusters_names = hierarchical_clusters_label(h_clusters_label)
 
     # Make treemap
-    treemap = topics_treemap(nested_topics=h_clusters_names)
+    treemap = topics_treemap(nested_topics=h_clusters_names, index_var=index_var)
 
     # Make sunburst
-    sunburst = topics_sunburst(nested_topics=h_clusters_names)
+    sunburst = topics_sunburst(nested_topics=h_clusters_names, index_var=index_var)
 
     # Make Sankey Diagram
     sankey = make_sankey(h_clusters_names, field="Dataset", index_var=index_var)

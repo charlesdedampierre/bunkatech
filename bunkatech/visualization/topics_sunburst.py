@@ -5,6 +5,7 @@ import plotly.express as px
 
 def topics_sunburst(
     nested_topics: pd.DataFrame,
+    index_var,
     size="topic_size",
     max_depth=2,
     width=1000,
@@ -12,7 +13,9 @@ def topics_sunburst(
 ):
 
     group = (
-        nested_topics.groupby("lemma_2").agg(topic_size=("imdb", "count")).reset_index()
+        nested_topics.groupby("lemma_2")
+        .agg(topic_size=(index_var, "count"))
+        .reset_index()
     )
 
     lemma = [f"lemma_{x}" for x in range(max_depth + 1)]

@@ -30,6 +30,7 @@ def get_embeddings(
     red = umap.UMAP(
         n_components=reduction_size, n_neighbors=10, metric="cosine", verbose=True
     )
+
     emb_red = red.fit_transform(emb)
 
     return emb_red, emb
