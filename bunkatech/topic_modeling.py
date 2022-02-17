@@ -15,10 +15,12 @@ pd.options.mode.chained_assignment = None
 def topic_modeling(
     docs: list,
     topic_number=20,
+    top_terms=20,
     ngrams=(1, 2),
     ents=False,
     sample_terms=2000,
     model="tfidf",
+    language="en",
 ):
 
     df = pd.DataFrame(docs, columns=["text_var"])
@@ -61,7 +63,7 @@ def topic_modeling(
         ngrams=ngrams,
         include_pos=["NOUN", "PROPN", "ADJ"],
         include_types=["PERSON", "ORG"],
-        language="en",
+        language=language,
     )
 
     # Index with the list of original words
@@ -78,7 +80,7 @@ def topic_modeling(
     data = pd.merge(df_indexed_full, df, left_on="docs", right_on="text_var")
     data = data.drop("docs", axis=1)
 
-    _, _, edge = specificity(data, X="cluster", Y="main form", Z=None, top_n=10)
+    _, _, edge = specificity(data, X="cluster", Y="main form", Z=None, top_n=top_terms)
 
     topics = (
         edge.groupby("cluster")["main form"]

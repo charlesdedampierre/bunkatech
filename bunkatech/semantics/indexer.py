@@ -3,14 +3,14 @@ import pandas as pd
 import os
 
 
-def indexer(docs: list, terms: list, db_path = '/Volumes/OutFriend'):
-    
+def indexer(docs: list, terms: list, db_path="."):
+
     terms = [x for x in terms if not x.startswith('"')]
     terms = [x for x in terms if not x.endswith('"')]
     terms = [x for x in terms if not x.startswith("'")]
     terms = [x for x in terms if not x.endswith("'")]
-    terms = [x.replace('"', '') for x in terms]
-    terms = ['"'+x+'"' for x in terms]
+    terms = [x.replace('"', "") for x in terms]
+    terms = ['"' + x + '"' for x in terms]
 
     conn = sqlite3.connect(db_path + "/database.db")
 
@@ -23,53 +23,35 @@ def indexer(docs: list, terms: list, db_path = '/Volumes/OutFriend'):
     df_terms = pd.DataFrame(terms, columns=["words"])
     df_terms.to_sql("terms", conn, if_exists="replace", index=False)
 
-    # index
-    idfield = "neo_id"
-    field = "data"
-    table = "docs"
-    terms = "terms"
-    words = "words"
-
     # conn.enable_load_extension(True)
     c = conn.cursor()
 
-    # define the name of the ouput column
-    output = "indexed_{}".format(terms)
-
+    # In case anything exists already
     c.execute("DROP table IF EXISTS abstractsearch;")
     c.execute("DROP table IF EXISTS uniqueterms;")
-    c.execute("DROP table IF EXISTS " + output + ";")
+    c.execute("DROP table IF EXISTS indexed_terms;")
     conn.commit()
 
+    # Starts the FTS5 abstract Search
     c.execute("CREATE VIRTUAL TABLE abstractsearch USING fts5(neo_id, data);")
     conn.commit()
-    c.execute(
-        "INSERT INTO abstractsearch SELECT "
-        + idfield
-        + " AS neo_id, "
-        + field
-        + " AS data FROM "
-        + table
-        + ";"
-    )
 
-    conn.commit()
-
+    # Insert the documents to serach terms from
     c.execute(
-        "CREATE TABLE uniqueterms AS SELECT DISTINCT "
-        + words
-        + " AS words FROM "
-        + terms
-        + ";"
+        "INSERT INTO abstractsearch SELECT neo_id AS neo_id, data AS data FROM docs;"
     )
     conn.commit()
 
+    # Create a unique terms table based on the terms table
+    c.execute("CREATE TABLE uniqueterms AS SELECT DISTINCT words AS words FROM terms;")
+    conn.commit()
+
+    # Create the output tabke with the result of the TFS5 Search
     c.execute(
-        "CREATE TABLE "
-        + output
-        + " AS SELECT * FROM abstractsearch, uniqueterms WHERE abstractsearch.data MATCH uniqueterms.words COLLATE NOCASE;"
+        "CREATE TABLE indexed_terms AS SELECT neo_id, words FROM abstractsearch, uniqueterms WHERE abstractsearch.data MATCH uniqueterms.words COLLATE NOCASE;"
         ""
     )
+
     conn.commit()
 
     c.execute("DROP table IF EXISTS abstractsearch;")
@@ -81,8 +63,8 @@ def indexer(docs: list, terms: list, db_path = '/Volumes/OutFriend'):
     df_indexed_table = pd.read_sql_query("SELECT * FROM indexed_terms", conn)
     final = pd.merge(df_docs_table, df_indexed_table, on="neo_id")
     final = final[["docs", "words"]].copy()
-    
-    final['words'] = final['words'].apply(lambda x: x.strip('"'))
+
+    final["words"] = final["words"].apply(lambda x: x.strip('"'))
 
     os.remove(db_path + "/database.db")
 
