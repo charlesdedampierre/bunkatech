@@ -10,7 +10,6 @@ setup(
     name="bunkatech",
     version=VERSION,
     author="Charles de Dampierre",
-    url="git@github.com:charlesdedampierre/bunkatech.git",
     author_email="<charles.de-dampierre@hec.edu>",
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
