@@ -77,6 +77,7 @@ def find_centroids(
         if len(centroid_element) > 1:
             centroid_element = " || ".join(centroid_element)
         else:
+            centroid_element = centroid_element[0]
             pass
 
         centroid_elements.append(centroid_element)
@@ -89,9 +90,9 @@ def find_centroids(
     df_centroids = pd.DataFrame(
         {
             "clusters": clusters,
-            "centroid_element": centroid_elements,
-            "far_elements": far_elements,
-            "distance": distances,
+            "centroid_docs": centroid_elements,
+            "farest_doc": far_elements,
+            "cluster_radius": distances,
         }
     )
     return df_centroids
