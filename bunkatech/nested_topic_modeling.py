@@ -115,7 +115,9 @@ class nested_topic_modeling:
         self.language = language
 
         self.terms = terms
+        self.h_clusters_number = h_clusters
         self.h_clusters_names = h_clusters_names
+        self.embeddings_raw = embeddings_reduced
         self.embeddings = df_emb
 
         self.treemap = treemap
@@ -124,3 +126,26 @@ class nested_topic_modeling:
         self.indexed_terms = df_indexed_full
 
         return self
+
+    def visualize_embeddings(self, n_clusters=20, sample=2000, width=1000, height=1000):
+        """Visualize the text in a 2 dimentions plots
+
+        Parameters
+        ----------
+        n_clusters : int, optional
+            _description_, by default 20
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+        fig = make_bubble(
+            self.embeddings_raw,
+            self.df,
+            self.text_var,
+            n_clusters=n_clusters,
+            width=width,
+            height=height,
+        )
+        return fig

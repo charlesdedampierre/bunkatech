@@ -20,11 +20,13 @@ def get_embeddings(
         emb = model.encode(docs, show_progress_bar=True)
 
     elif model == "tfidf":
-        model = TfidfVectorizer(max_features=10000)
+        model = TfidfVectorizer(max_features=20000)
         sentences = list(data[field])
         emb = model.fit_transform(sentences)
     else:
-        print("Chose the right model...")
+        raise ValueError(
+            f"{model} is not a right embeddings_model. Please chose between 'tfidf' or 'sbert'"
+        )
 
     print("Reducing the vectors..")
     red = umap.UMAP(
