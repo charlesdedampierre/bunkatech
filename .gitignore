@@ -1,6 +1,8 @@
 # Project specific
 
 saved_graph/
+data_scraped/
+*.html
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
