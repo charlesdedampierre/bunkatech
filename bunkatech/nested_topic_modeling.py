@@ -59,7 +59,6 @@ class nested_topic_modeling:
         df_emb[index_var] = df[index_var]
         h_clusters = hierarchical_clusters(df_emb)
 
-        print("Extract Terms...")
         terms = extract_terms_df(
             df,
             text_var=text_var,
@@ -135,7 +134,7 @@ class nested_topic_modeling:
 
     def visualize_embeddings(
         self, nested_level: int = 0, width: int = 1000, height: int = 1000
-    ) -> plotly.graph_objs._figure.Figure:
+    ):
 
         """Visualize the embeddings in 2D based on nested level.
         There is an hover for the text and clusters have names.
@@ -148,10 +147,14 @@ class nested_topic_modeling:
             on=self.index_var,
         )
         res = pd.merge(res, self.df, on=self.index_var)
-        X_embedded_fit = umap.UMAP(n_components=2).fit_transform(res[[0, 1, 2, 3, 4]])
 
-        res["dim_1"] = X_embedded_fit[:, 0]
-        res["dim_2"] = X_embedded_fit[:, 1]
+        if not hasattr(self, "embeddings_2d"):
+            self.embeddings_2d = umap.UMAP(n_components=2).fit_transform(
+                res[[0, 1, 2, 3, 4]]
+            )
+
+        res["dim_1"] = self.embeddings_2d[:, 0]
+        res["dim_2"] = self.embeddings_2d[:, 1]
 
         res[f"level_{nested_level}"] = res[f"level_{nested_level}"].astype(object)
         res[self.text_var] = res[self.text_var].apply(lambda x: wrap_by_word(x, 10))

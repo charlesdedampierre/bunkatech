@@ -95,4 +95,7 @@ def find_centroids(
             "cluster_radius": distances,
         }
     )
+
+    df_centroids = df_centroids.reset_index(drop=True)
+
     return df_centroids

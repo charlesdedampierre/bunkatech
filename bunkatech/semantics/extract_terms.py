@@ -147,7 +147,7 @@ def extract_terms_df(
 
     df_terms = pd.DataFrame()
     df_terms_spacy = []
-    pbar = tqdm(total=len(sentences))
+    pbar = tqdm(total=len(sentences), desc="Extract Terms")
     for text in sentences:
         df, final = extract_terms(
             text,
