@@ -47,7 +47,7 @@ class nested_topic_modeling:
         df = df[df[text_var].notna()]  # cautious not to let any nan
         df = df.reset_index(drop=True)
 
-        embeddings_reduced, embeddings_full = get_embeddings(
+        embeddings_reduced, _ = get_embeddings(
             df,
             field=text_var,
             model=embeddings_model,
