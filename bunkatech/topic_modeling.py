@@ -8,7 +8,6 @@ import umap
 import plotly.express as px
 from .visualization.make_bubble import wrap_by_word
 
-
 # from .visualization.make_bubble import make_bubble
 from .specificity import specificity
 
