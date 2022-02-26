@@ -147,7 +147,7 @@ def extract_terms_df(
 
     df_terms = pd.DataFrame()
     df_terms_spacy = []
-    pbar = tqdm(total=len(sentences))
+    pbar = tqdm(total=len(sentences), desc="Extract Terms")
     for text in sentences:
         df, final = extract_terms(
             text,
@@ -196,6 +196,9 @@ def extract_terms_df(
     main_form = main_form.drop("count_text", axis=1)
     main_form = main_form.groupby("lemma").head(1)
     main_form = main_form.rename(columns={"text": "main form"})
+    main_form["main form"] = main_form["main form"].apply(
+        lambda x: x.lower().capitalize()
+    )
 
     # Create chi2 tablme
     terms_lemma = [[span.lemma_.lower() for span in doc] for doc in df_terms_spacy]

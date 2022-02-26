@@ -1,7 +1,15 @@
+# Project specific
+
+saved_graph/
+data_scraped/
+*.html
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+*.csv
+
 
 # C extensions
 *.so
