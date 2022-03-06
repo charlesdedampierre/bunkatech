@@ -19,13 +19,14 @@ from .visualization.topics_treemap import topics_treemap
 from .visualization.topics_sunburst import topics_sunburst
 
 from .networks.centroids import find_centroids
+from .search.fts5_search import fts5_search
 
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 pd.options.mode.chained_assignment = None
 
 
-class nested_topic_modeling:
+class NestedTopicModeling:
     def __init__(self) -> None:
         pass
 
@@ -99,15 +100,6 @@ class nested_topic_modeling:
         h_clusters_label = h_clusters_label.rename(columns={"main form": "lemma"})
         h_clusters_names = hierarchical_clusters_label(h_clusters_label)
 
-        # Make treemap
-        treemap = topics_treemap(nested_topics=h_clusters_names, index_var=index_var)
-
-        # Make sunburst
-        sunburst = topics_sunburst(nested_topics=h_clusters_names, index_var=index_var)
-
-        # Make Sankey Diagram
-        sankey = make_sankey(h_clusters_names, field="Dataset", index_var=index_var)
-
         # Save the arguments in the self
         self.df = df
         self.text_var = text_var
@@ -125,12 +117,78 @@ class nested_topic_modeling:
         self.embeddings_raw = embeddings_reduced
         self.embeddings = df_emb.drop("level_0", axis=1)
 
-        self.treemap = treemap
-        self.sunburst = sunburst
-        self.sankey = sankey
         self.indexed_terms = df_indexed_full
 
         return self
+
+    def make_nested_maps(
+        self,
+        size_rule="equal_size",
+        map_type="treemap",
+        width=1000,
+        height=1000,
+        query=None,
+    ):
+
+        if query is not None:
+            docs = self.df[self.text_var].to_list()
+            # Make the term search among the documents
+            res_search = fts5_search(query, docs)
+
+            # Merge the results with the text_var
+            df_cluster_names_filter = pd.merge(
+                self.df, res_search, left_on=self.text_var, right_on="docs"
+            )
+
+            # Merge the ids with the nested clusters if information
+            df_cluster_names_filter = pd.merge(
+                self.h_clusters_names,
+                df_cluster_names_filter[[self.index_var]],
+                on=self.index_var,
+            )
+
+            # group by the more nested topics
+            count_search = (
+                df_cluster_names_filter.groupby(["lemma_2"])
+                .agg(score_norm=(self.index_var, "count"))
+                .reset_index()
+            )
+        else:
+            count_search = None
+
+        if map_type == "treemap":
+            # Make treemap
+            map = topics_treemap(
+                nested_topics=self.h_clusters_names,
+                index_var=self.index_var,
+                size_rule=size_rule,
+                width=width,
+                height=height,
+                count_search=count_search,
+            )
+
+        elif map_type == "sunburst":
+            # Make sunburst
+            map = topics_sunburst(
+                nested_topics=self.h_clusters_names,
+                index_var=self.index_var,
+                size_rule=size_rule,
+                width=width,
+                height=height,
+            )
+
+        elif map_type == "sankey":
+            # Make Sankey Diagram
+            map = make_sankey(
+                self.h_clusters_names, field="Dataset", index_var=self.index_var
+            )
+
+        else:
+            raise ValueError(
+                f' "{map_type}" is not a correct value. Please enter a correct map_type value such as "Treemap", "Sunburst" or "Sankey"'
+            )
+
+        return map
 
     def visualize_embeddings(
         self, nested_level: int = 0, width: int = 1000, height: int = 1000

@@ -1,8 +1,9 @@
 from bunkatech.topic_modeling import topic_modeling
+from bunkatech.nested_topic_modeling import NestedTopicModeling
+
 import pandas as pd
 
-"""from sklearn.datasets import fetch_20newsgroups
-
+"""
 docs = fetch_20newsgroups(subset="all", remove=("headers", "footers", "quotes"))["data"]
 df = pd.DataFrame(docs)
 sample_size = 200
@@ -13,20 +14,21 @@ df.to_csv("sample_test.csv", index=False)"""
 
 df = pd.read_csv("sample_test.csv")
 
-model = topic_modeling()
-bunka = model.fit(
+bunka = NestedTopicModeling()
+model = bunka.fit(
     df,
-    index_var="bindex",
     text_var="text",
-    sample_size=2000,
-    max_terms=100,
-    topic_number=20,
-    top_terms=3,
+    index_var="bindex",
+    sample_size=500,
+    sample_terms=1000,
+    embeddings_model="tfidf",
     ngrams=(1, 2),
     ents=False,
-    sample_terms=2000,
-    model="tfidf",
     language="en",
+    db_path=".",
 )
-fig = model.visualize_embeddings()
-fig.show()
+
+map = bunka.make_nested_maps(
+    size_rule="topic_documents", map_type="treemap", query="president"
+)
+map.show()
