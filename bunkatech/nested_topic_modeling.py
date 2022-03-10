@@ -9,6 +9,8 @@ import umap
 from .semantics.extract_terms import extract_terms_df
 from .semantics.indexer import indexer
 from .semantics.get_embeddings import get_embeddings
+from .semantics.semantic_folding import semantic_folding
+
 
 from .hierarchical_clusters import hierarchical_clusters
 from .hierarchical_clusters_label import hierarchical_clusters_label
@@ -38,8 +40,10 @@ class NestedTopicModeling:
         sample_size: int = 500,
         sample_terms: int = 1000,
         embeddings_model: str = "tfidf",
+        folding=None,
         ngrams=(1, 2),
         ents=False,
+        ncs=False,
         language="en",
         db_path=".",
     ):
@@ -48,12 +52,23 @@ class NestedTopicModeling:
         df = df[df[text_var].notna()]  # cautious not to let any nan
         df = df.reset_index(drop=True)
 
-        embeddings_reduced, _ = get_embeddings(
-            df,
-            field=text_var,
-            model=embeddings_model,
-            model_path="distiluse-base-multilingual-cased-v1",  # workds if sbert is chosen
-        )
+        if folding is not None:
+
+            embeddings_reduced = semantic_folding(
+                folding,
+                df,
+                text_var=text_var,
+                model=embeddings_model,
+                dimension_folding=5,
+                folding_only=True,
+            )
+        else:
+            embeddings_reduced, _ = get_embeddings(
+                df,
+                field=text_var,
+                model=embeddings_model,
+                model_path="distiluse-base-multilingual-cased-v1",  # workds if sbert is chosen
+            )
 
         # Create Nested clusters.
         df_emb = pd.DataFrame(embeddings_reduced)
@@ -67,7 +82,7 @@ class NestedTopicModeling:
             sample_size=sample_terms,
             ngs=True,  # ngrams
             ents=ents,  # entities
-            ncs=False,  # nouns
+            ncs=ncs,  # nouns
             drop_emoji=True,
             remove_punctuation=False,
             ngrams=ngrams,
@@ -129,6 +144,31 @@ class NestedTopicModeling:
         height=1000,
         query=None,
     ):
+        """Create Maps to display information
+
+        Parameters
+        ----------
+        size_rule : str, optional
+            _description_, by default "equal_size"
+        map_type : str, optional
+            _description_, by default "treemap"
+        width : int, optional
+            _description_, by default 1000
+        height : int, optional
+            _description_, by default 1000
+        query : _type_, optional
+            _description_, by default None
+
+        Returns
+        -------
+        _type_
+            _description_
+
+        Raises
+        ------
+        ValueError
+            _description_
+        """
 
         if query is not None:
             docs = self.df[self.text_var].to_list()

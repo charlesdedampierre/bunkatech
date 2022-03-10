@@ -12,23 +12,40 @@ df.columns = ["text"]
 df["bindex"] = df.index
 df.to_csv("sample_test.csv", index=False)"""
 
-df = pd.read_csv("sample_test.csv")
+# df = pd.read_csv("sample_test.csv")
+
+df = pd.read_excel(
+    "/Users/charlesdedampierre/Desktop/SciencePo Projects/shaping-ai/labeling/SHAI-LABELS-ROUND-1.xlsx"
+)
+
+df = df.reset_index(drop=True)
+df["bindex"] = df.index
+
+folding = [
+    ["bien", "avancé", "opportunité", "innovation", "amélioration", "promesses"],
+    ["danger", "tuer", "problèmes", "mauvais", "risques", "dangers", "peur"],
+    ["savoir", "connaissance", "limite", "cerveau", "immense"],
+]
+
 
 bunka = NestedTopicModeling()
 model = bunka.fit(
     df,
-    text_var="text",
+    text_var="title_lead",
     index_var="bindex",
-    sample_size=500,
-    sample_terms=1000,
+    sample_size=1000,
+    sample_terms=500,
     embeddings_model="tfidf",
-    ngrams=(1, 2),
+    folding=None,
+    ngrams=(2, 2),
     ents=False,
-    language="en",
+    language="fr",
     db_path=".",
 )
 
 map = bunka.make_nested_maps(
-    size_rule="topic_documents", map_type="treemap", query="president"
+    size_rule="topic_documents",
+    map_type="treemap",
+    query=folding[2],
 )
 map.show()
