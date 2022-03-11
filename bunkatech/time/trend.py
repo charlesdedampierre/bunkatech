@@ -54,7 +54,7 @@ def trend(
         y=df["lower"],
         mode="lines",
         marker=dict(
-            color="#5E88FC",
+            color="grey",
             # symbol='circle-open'
         ),
         name="lower",
@@ -65,7 +65,7 @@ def trend(
         y=df["upper"],
         mode="lines",
         marker=dict(
-            color="#5E88FC",
+            color="grey",
             # symbol='circle-open'
         ),
         name="higher",
