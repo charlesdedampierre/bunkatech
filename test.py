@@ -3,18 +3,9 @@ from bunkatech.nested_topic_modeling import NestedTopicModeling
 
 import pandas as pd
 
-"""
-docs = fetch_20newsgroups(subset="all", remove=("headers", "footers", "quotes"))["data"]
-df = pd.DataFrame(docs)
-sample_size = 200
-df = df.sample(sample_size).reset_index(drop=True)
-df.columns = ["text"]
-df["bindex"] = df.index
-df.to_csv("sample_test.csv", index=False)"""
-
 # df = pd.read_csv("sample_test.csv")
 
-df = pd.read_excel(
+"""df = pd.read_excel(
     "/Users/charlesdedampierre/Desktop/SciencePo Projects/shaping-ai/labeling/SHAI-LABELS-ROUND-1.xlsx"
 )
 
@@ -49,3 +40,26 @@ map = bunka.make_nested_maps(
     query=folding[2],
 )
 map.show()
+"""
+
+from bunkatech.semantics.vocabulary_extension import sbert_extension
+
+data = pd.read_csv(
+    "/Users/charlesdedampierre/Desktop/ENS Projects/imaginary-world/db_film_iw (2).csv",
+    index_col=[0],
+)
+
+
+exploration_words = ["success"]
+
+
+res = sbert_extension(
+    exploration_words,
+    data,
+    text_var="description",
+    sample_terms=1000,
+    language="en",
+    top_n=30,
+)
+
+print(res)
