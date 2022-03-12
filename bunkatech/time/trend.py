@@ -275,7 +275,7 @@ if __name__ == "__main__":
     )"""
 
     df_sample["date"] = pd.to_datetime(df_sample["date"])
-    df_sample = df_sample[df_sample["date"].dt.year >= 2020]
+    # df_sample = df_sample[df_sample["date"].dt.year >= 2020]
 
     fig_3 = average_comparison(
         df_sample, date_var="date", index_var="id", smoothing_scale=7, context_scale=31
