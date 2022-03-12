@@ -2,6 +2,10 @@ import pandas as pd
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 import numpy as np
+import plotly.io as pio
+import plotly.express as px
+
+pio.templates.default = "plotly_dark"
 
 
 def trend(
@@ -230,9 +234,13 @@ def average_comparison(
         )
 
     # include averages
-    fig.add_traces(go.Scatter(x=df1.index, y=df1.ma1, line=dict(color="blue", width=1)))
+    """fig.add_traces(
+        go.Scatter(x=df1.index, y=df1.ma1, line=dict(color="white", width=1))
+    )
 
-    fig.add_traces(go.Scatter(x=df1.index, y=df1.ma2, line=dict(color="red", width=1)))
+    fig.add_traces(
+        go.Scatter(x=df1.index, y=df1.ma2, line=dict(color="white", width=1))
+    )"""
 
     # include main time-series
     # fig.add_traces(go.Scatter(x=df1.index, y=df1.y, line=dict(color="black", width=2)))
