@@ -189,7 +189,13 @@ def semantic_candles(
 
 
 def average_comparison(
-    df_sample, date_var="date", index_var="id", smoothing_scale=5, context_scale=20
+    df_sample,
+    date_var="date",
+    index_var="id",
+    smoothing_scale=5,
+    context_scale=20,
+    height=1200,
+    width=2000,
 ):
     """compare the difference bewteen two moving  averages"""
     df = df_sample.groupby(date_var).agg(count_ids=(index_var, "count"))
@@ -247,6 +253,14 @@ def average_comparison(
 
     fig.update_layout(showlegend=False)
     fig.update_xaxes(rangeslider_visible=True)
+    fig.update_layout(
+        title=dict(
+            text="<b>Semantic Trend</b>",
+            font=dict(family="Arial", size=50, color="#000000"),
+        ),
+        height=height,
+        width=width,
+    )
 
     return fig
 
