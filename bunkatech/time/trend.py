@@ -1,7 +1,7 @@
 import pandas as pd
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
-import cufflinks as cf
+import numpy as np
 
 
 def trend(
@@ -12,6 +12,7 @@ def trend(
     context_scale=182,
     height=1000,
     width=2000,
+    stv_scale=1.5,
 ):
 
     """Count the number of documents in a specific date time"""
@@ -21,11 +22,11 @@ def trend(
     df["long_trend"] = df["count_ids"].rolling(context_scale).mean()
     df["lower"] = (
         df["count_ids"].rolling(context_scale).mean()
-        - df["count_ids"].rolling(context_scale).std() * 1.5
+        - df["count_ids"].rolling(context_scale).std() * stv_scale
     )
     df["upper"] = (
         df["count_ids"].rolling(context_scale).mean()
-        + df["count_ids"].rolling(context_scale).std() * 1.5
+        + df["count_ids"].rolling(context_scale).std() * stv_scale
     )
 
     trace1 = go.Scatter(
@@ -183,6 +184,65 @@ def semantic_candles(
     return fig
 
 
+def average_comparison(
+    df_sample, date_var="date", index_var="id", smoothing_scale=5, context_scale=20
+):
+    """compare the difference bewteen two moving  averages"""
+    df = df_sample.groupby(date_var).agg(count_ids=(index_var, "count"))
+
+    df["trend"] = df["count_ids"].rolling(smoothing_scale).mean()
+    df["long_trend"] = df["count_ids"].rolling(context_scale).mean()
+
+    df.columns = ["y", "ma1", "ma2"]
+    df = df.dropna()
+    df1 = df.copy()
+
+    # split data into chunks where averages cross each other
+    df["label"] = np.where(df["ma1"] > df["ma2"], 1, 0)
+    df["group"] = df["label"].ne(df["label"].shift()).cumsum()
+    df = df.groupby("group")
+    dfs = []
+    for name, data in df:
+        dfs.append(data)
+
+    # custom function to set fill color
+    def fillcol(label):
+        if label >= 1:
+            return "rgba(0,250,0,0.4)"
+        else:
+            return "rgba(250,0,0,0.4)"
+
+    fig = go.Figure()
+
+    for df in dfs:
+        fig.add_traces(
+            go.Scatter(x=df.index, y=df.ma1, line=dict(color="rgba(0,0,0,0)"))
+        )
+
+        fig.add_traces(
+            go.Scatter(
+                x=df.index,
+                y=df.ma2,
+                line=dict(color="rgba(0,0,0,0)"),
+                fill="tonexty",
+                fillcolor=fillcol(df["label"].iloc[0]),
+            )
+        )
+
+    # include averages
+    fig.add_traces(go.Scatter(x=df1.index, y=df1.ma1, line=dict(color="blue", width=1)))
+
+    fig.add_traces(go.Scatter(x=df1.index, y=df1.ma2, line=dict(color="red", width=1)))
+
+    # include main time-series
+    # fig.add_traces(go.Scatter(x=df1.index, y=df1.y, line=dict(color="black", width=2)))
+
+    fig.update_layout(showlegend=False)
+    fig.update_xaxes(rangeslider_visible=True)
+
+    return fig
+
+
 if __name__ == "__main__":
     df_sample = pd.read_csv(
         "/Volumes/OutFriend/timeline_folding/time_sample.csv", index_col=[0]
@@ -196,7 +256,7 @@ if __name__ == "__main__":
 
     """
 
-    fig = semantic_candles(
+    f""""ig = semantic_candles(
         df_sample,
         date_var="date",
         index_var="id",
@@ -209,8 +269,16 @@ if __name__ == "__main__":
         df_sample,
         date_var="date",
         index_var="id",
-        smoothing_scale=10,
+        smoothing_scale=7,
         context_scale=30,
+        stv_scale=0.8,
+    )"""
+
+    df_sample["date"] = pd.to_datetime(df_sample["date"])
+    df_sample = df_sample[df_sample["date"].dt.year >= 2020]
+
+    fig_3 = average_comparison(
+        df_sample, date_var="date", index_var="id", smoothing_scale=7, context_scale=31
     )
 
-    fig_2.show()
+    fig_3.show()
