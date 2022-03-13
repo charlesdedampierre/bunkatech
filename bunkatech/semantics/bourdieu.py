@@ -1,10 +1,13 @@
 import pandas as pd
-from sklearn.metrics.pairwise import cosine_similarity
-from bunkatech.semantics.extract_terms import extract_terms_df
-from sentence_transformers import SentenceTransformer
-from sklearn.preprocessing import MinMaxScaler
 import plotly.graph_objects as go
-from bunkatech.semantics.indexer import indexer
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.linear_model import LinearRegression
+
+from .extract_terms import extract_terms_df
+from .indexer import indexer
+from sentence_transformers import SentenceTransformer
 
 pd.options.mode.chained_assignment = None
 
@@ -111,6 +114,7 @@ class Bourdieu:
         projection_2: list,
         height: int = 1000,
         width: int = 1000,
+        regression=True,
     ):
 
         projection_str = "-".join(projection)
@@ -132,8 +136,6 @@ class Bourdieu:
 
         # Visualize the results
         df_proj["term"] = df_proj.index
-
-        self.df_terms_fig = df_proj
 
         fig = go.Figure()
 
@@ -166,18 +168,40 @@ class Bourdieu:
         fig.add_trace(trace_1)
         fig.add_trace(trace_2)
 
+        if regression is True:
+            reg = LinearRegression().fit(
+                np.vstack(df_proj[projection_str]), df_proj[projection_str_2]
+            )
+            df_proj["bestfit"] = reg.predict(np.vstack(df_proj[projection_str]))
+
+            fig.add_trace(
+                go.Scatter(
+                    name="linear Regression",
+                    x=df_proj[projection_str],
+                    y=df_proj["bestfit"],
+                    mode="lines",
+                )
+            )
+
         fig.update_layout(
             title="Bourdieu Projection",
             height=height,
             width=width,
-            xaxis_title=projection_str,
-            yaxis_title=projection_str_2,
+            xaxis_title="<--- " + " | ".join(reversed(projection)) + " --->",
+            yaxis_title="<--- " + " | ".join(reversed(projection_2)) + " --->",
         )
+
+        self.df_terms_fig = df_proj
 
         return fig
 
     def bourdieu_projection_documents(
-        self, projection, projection_2, db_path=".", width=1000, height=1000
+        self,
+        projection,
+        projection_2,
+        width=1000,
+        height=1000,
+        regression=True,
     ):
 
         projection_str = "-".join(projection)
@@ -222,7 +246,6 @@ class Bourdieu:
         )
 
         res["text_var_prep"] = res[self.text_var].apply(lambda x: wrap_by_word(x, 10))
-        self.df_doc_fig = res
 
         # Make Figures
         fig = go.Figure()
@@ -248,19 +271,36 @@ class Bourdieu:
             y=res[projection_str_2],
             text=res["text_var_prep"],
             mode="markers",
-            name="terms",
+            name=self.text_var,
         )
 
         fig.add_trace(trace_scatter)
         fig.add_trace(trace_1)
         fig.add_trace(trace_2)
 
+        if regression is True:
+            reg = LinearRegression().fit(
+                np.vstack(res[projection_str]), res[projection_str_2]
+            )
+            res["bestfit"] = reg.predict(np.vstack(res[projection_str]))
+
+            fig.add_trace(
+                go.Scatter(
+                    name="linear Regression",
+                    x=res[projection_str],
+                    y=res["bestfit"],
+                    mode="lines",
+                )
+            )
+
         fig.update_layout(
             title="Bourdieu Projection",
             height=height,
             width=width,
-            xaxis_title=projection_str,
-            yaxis_title=projection_str_2,
+            xaxis_title="<--- " + " | ".join(reversed(projection)) + " --->",
+            yaxis_title="<--- " + " | ".join(reversed(projection_2)) + " --->",
         )
+
+        self.df_doc_fig = res
 
         return fig
