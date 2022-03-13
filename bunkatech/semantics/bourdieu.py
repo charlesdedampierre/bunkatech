@@ -26,7 +26,7 @@ class Bourdieu:
     def __init__(self) -> None:
         pass
 
-    def fit(self, data, text_var, index_var):
+    def fit(self, data, text_var, index_var, projected_vars: list = None):
         data = data[data[text_var].notna()]
         self.data = data
         self.text_var = text_var
@@ -202,6 +202,7 @@ class Bourdieu:
         width=1000,
         height=1000,
         regression=True,
+        projected_var=None,
     ):
 
         projection_str = "-".join(projection)
@@ -245,6 +246,16 @@ class Bourdieu:
             }
         )
 
+        if projected_var is not None:
+            res = pd.merge(
+                res, self.data[[self.index_var, projected_var]], on=self.index_var
+            )
+            res = res[res[projected_var].notna()]
+            color = res[projected_var]
+
+        else:
+            color = None
+
         res["text_var_prep"] = res[self.text_var].apply(lambda x: wrap_by_word(x, 10))
 
         # Make Figures
@@ -272,6 +283,7 @@ class Bourdieu:
             text=res["text_var_prep"],
             mode="markers",
             name=self.text_var,
+            marker_color=color,
         )
 
         fig.add_trace(trace_scatter)
@@ -299,6 +311,7 @@ class Bourdieu:
             width=width,
             xaxis_title="<--- " + " | ".join(reversed(projection)) + " --->",
             yaxis_title="<--- " + " | ".join(reversed(projection_2)) + " --->",
+            showlegend=True,
         )
 
         self.df_doc_fig = res
