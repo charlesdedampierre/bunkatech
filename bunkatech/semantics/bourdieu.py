@@ -40,6 +40,7 @@ class Bourdieu:
         include_pos=["NOUN", "PROPN", "ADJ"],
         include_types=["PERSON", "ORG"],
         language="en",
+        db_path=".",
     ):
         terms = extract_terms_df(
             self.data,
@@ -59,6 +60,26 @@ class Bourdieu:
 
         terms["main form"] = terms["main form"].apply(lambda x: x.lower())
         self.terms = terms
+
+        # index terms
+        df_terms = self.terms.copy()
+        df_terms["text"] = df_terms["text"].apply(lambda x: x.split(" | "))
+        df_terms = df_terms.explode("text").reset_index(drop=True)
+        list_terms = df_terms["text"].tolist()
+
+        # Index the extracted terms
+        df_indexed = indexer(
+            self.data[self.text_var].tolist(), list_terms, db_path=db_path
+        )
+
+        df_indexed_full = pd.merge(
+            df_indexed, df_terms, left_on="words", right_on="text"
+        )
+        df_indexed_full = df_indexed_full[["docs", "lemma", "main form", "text"]].copy()
+        df_enrich = pd.merge(
+            self.data, df_indexed_full, left_on=self.text_var, right_on="docs"
+        )
+        self.df_indexed = df_enrich
 
         return terms
 
@@ -112,6 +133,8 @@ class Bourdieu:
         # Visualize the results
         df_proj["term"] = df_proj.index
 
+        self.df_terms_fig = df_proj
+
         fig = go.Figure()
 
         # Plot two axes x and y to visualisy scale the results (like PCA projection)
@@ -156,23 +179,6 @@ class Bourdieu:
     def bourdieu_projection_documents(
         self, projection, projection_2, db_path=".", width=1000, height=1000
     ):
-        df_terms = self.terms.copy()
-        df_terms["text"] = df_terms["text"].apply(lambda x: x.split(" | "))
-        df_terms = df_terms.explode("text").reset_index(drop=True)
-        list_terms = df_terms["text"].tolist()
-
-        # Index the extracted terms
-        df_indexed = indexer(
-            self.data[self.text_var].tolist(), list_terms, db_path=db_path
-        )
-
-        df_indexed_full = pd.merge(
-            df_indexed, df_terms, left_on="words", right_on="text"
-        )
-        df_indexed_full = df_indexed_full[["docs", "lemma", "main form", "text"]].copy()
-        df_enrich = pd.merge(
-            self.data, df_indexed_full, left_on=self.text_var, right_on="docs"
-        )
 
         projection_str = "-".join(projection)
         projection_str_2 = "-".join(projection_2)
@@ -195,7 +201,7 @@ class Bourdieu:
         # Merge with the original data
         fin = pd.merge(
             df_proj[["term", projection_str, projection_str_2]],
-            df_enrich[[self.index_var, "main form", self.text_var]],
+            self.df_indexed[[self.index_var, "main form", self.text_var]],
             left_on="term",
             right_on="main form",
         )
@@ -216,6 +222,7 @@ class Bourdieu:
         )
 
         res["text_var_prep"] = res[self.text_var].apply(lambda x: wrap_by_word(x, 10))
+        self.df_doc_fig = res
 
         # Make Figures
         fig = go.Figure()
