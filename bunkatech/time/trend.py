@@ -256,7 +256,7 @@ def average_comparison(
     fig.update_layout(
         title=dict(
             text="<b>Semantic Trend</b>",
-            font=dict(family="Arial", size=50, color="#000000"),
+            font=dict(size=50),
         ),
         height=height,
         width=width,

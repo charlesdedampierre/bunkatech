@@ -7,7 +7,13 @@ from ..search.query import make_query
 
 
 def sbert_extension(
-    queries: list, data, text_var, sample_terms=3000, language="en", top_n: int = 20
+    queries: list,
+    data,
+    text_var,
+    sample_terms=3000,
+    language="en",
+    top_n: int = 20,
+    bert_model='"distiluse-base-multilingual-cased-v1"',
 ):
     """Extract Similar terms based on a query and sbert and output the top_n most similar terms"""
     data = data[data[text_var].notna()]
@@ -29,26 +35,28 @@ def sbert_extension(
 
     terms["bindex"] = terms.index
     # embed the temrs with sbert
-    model = SentenceTransformer("distiluse-base-multilingual-cased-v1")
+    model = SentenceTransformer(bert_model)
     docs = list(terms["main form"])
     terms_embeddings = model.encode(docs, show_progress_bar=True)
 
     semantic_words = pd.DataFrame()
-
     for word in queries:
 
-        res = make_query(
-            data=terms,
-            model=model,
-            corpus_embeddings=terms_embeddings,
-            query=[word],
-            data_id="bindex",
-            top_n=top_n,
-        )
+        try:
+            res = make_query(
+                data=terms,
+                model=model,
+                corpus_embeddings=terms_embeddings,
+                query=[word],
+                data_id="bindex",
+                top_n=top_n,
+            )
 
-        fin = pd.merge(res, terms, on="bindex")
-        fin = fin[["query", "main form"]]
-        semantic_words = semantic_words.append(fin)
+            fin = pd.merge(res, terms, on="bindex")
+            fin = fin[["query", "main form"]]
+            semantic_words = semantic_words.append(fin)
+        except:
+            pass
 
     semantic_words = semantic_words.reset_index(drop=True)
     return semantic_words

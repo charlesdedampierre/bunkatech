@@ -19,6 +19,8 @@ from .visualization.make_bubble import wrap_by_word
 from .visualization.sankey import make_sankey
 from .visualization.topics_treemap import topics_treemap
 from .visualization.topics_sunburst import topics_sunburst
+from .visualization.topics_nested import topics_nested
+
 
 from .networks.centroids import find_centroids
 from .search.fts5_search import fts5_search
@@ -198,23 +200,26 @@ class NestedTopicModeling:
 
         if map_type == "treemap":
             # Make treemap
-            map = topics_treemap(
+            map = topics_nested(
                 nested_topics=self.h_clusters_names,
                 index_var=self.index_var,
                 size_rule=size_rule,
                 width=width,
                 height=height,
                 count_search=count_search,
+                map_type="treemap",
             )
 
         elif map_type == "sunburst":
             # Make sunburst
-            map = topics_sunburst(
+            map = topics_nested(
                 nested_topics=self.h_clusters_names,
                 index_var=self.index_var,
                 size_rule=size_rule,
                 width=width,
                 height=height,
+                count_search=count_search,
+                map_type="sunburst",
             )
 
         elif map_type == "sankey":
