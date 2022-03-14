@@ -280,7 +280,7 @@ if __name__ == "__main__":
 
     f""""ig = semantic_candles(
         df_sample,
-        date_var="date",
+        date_var="date",t
         index_var="id",
         short_trend_step=5,
         long_trend_step=20,

@@ -273,7 +273,7 @@ class Bourdieu:
             self.df_bert[projection + projection_2]
         except KeyError:
             print(
-                "The Terms are not in the initial dataset. Embedding the new terms..."
+                "Some required terms are not in the initial dataset. Embedding the new terms..."
             )
 
             self.df_bert = self.compute_projection_embeddings(projection, projection_2)
