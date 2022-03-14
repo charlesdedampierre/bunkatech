@@ -64,27 +64,43 @@ class Bourdieu:
         terms["main form"] = terms["main form"].apply(lambda x: x.lower())
         self.terms = terms
 
-        # index terms
+        self.index_terms(projection=False, db_path=db_path)
+
+        return terms
+
+    def index_terms(self, db_path=".", projection=False):
+
+        """Intex the terms on the text_var dataset"""
+
+        # Get all the differents types of terms (not only the main form)
         df_terms = self.terms.copy()
         df_terms["text"] = df_terms["text"].apply(lambda x: x.split(" | "))
         df_terms = df_terms.explode("text").reset_index(drop=True)
-        list_terms = df_terms["text"].tolist()
+
+        # If new words from projection must be added
+        if projection == True:
+            list_terms = df_terms["text"].tolist() + self.projection_all
+        else:
+            list_terms = df_terms["text"].tolist()
 
         # Index the extracted terms
         df_indexed = indexer(
             self.data[self.text_var].tolist(), list_terms, db_path=db_path
         )
 
+        # Merge the indexed terms with the df_terms
         df_indexed_full = pd.merge(
             df_indexed, df_terms, left_on="words", right_on="text"
         )
+
+        # Merge with the initial dataset
         df_indexed_full = df_indexed_full[["docs", "lemma", "main form", "text"]].copy()
         df_enrich = pd.merge(
             self.data, df_indexed_full, left_on=self.text_var, right_on="docs"
         )
         self.df_indexed = df_enrich
 
-        return terms
+        return self
 
     def sbert_embedding(self, bert_model="distiluse-base-multilingual-cased-v1"):
 
@@ -94,6 +110,8 @@ class Bourdieu:
         model = SentenceTransformer(bert_model)
         docs = list(self.terms["main form"])
         terms_embeddings = model.encode(docs, show_progress_bar=True)
+        self.model = model
+        self.initial_embeddings = terms_embeddings
 
         # Lower all the terms
         docs_prepro = [x.lower() for x in docs]
@@ -105,6 +123,36 @@ class Bourdieu:
         df_bert.index = docs_prepro
 
         self.df_bert = df_bert
+        return df_bert
+
+    def compute_projection_embeddings(
+        self, projection=["cooperative", "salaud"], projection_2=["woman", "man"]
+    ):
+        """Compute embeddings of the newly projected terms and associate them to the initial embeddings matrix"""
+
+        projection_all = projection + projection_2
+        self.projection_all = projection_all
+
+        # index the new projected terms
+        self.index_terms(projection=True)
+
+        projection_embeddings = self.model.encode(
+            projection_all, show_progress_bar=True
+        )
+
+        full_terms_embeddings = np.concatenate(
+            [self.initial_embeddings, projection_embeddings]
+        )
+        full_terms = self.terms["main form"].to_list() + projection_all
+        full_terms_prepro = [x.lower() for x in full_terms]
+
+        df_bert = cosine_similarity(full_terms_embeddings)
+        df_bert = pd.DataFrame(df_bert)
+        df_bert.columns = full_terms_prepro
+        df_bert.index = full_terms_prepro
+
+        # Duplicates because fome terms may have already been embedded
+        df_bert = df_bert.loc[:, ~df_bert.columns.duplicated()]
 
         return df_bert
 
@@ -120,8 +168,21 @@ class Bourdieu:
         projection_str = "-".join(projection)
         projection_str_2 = "-".join(projection_2)
 
+        try:
+            self.df_bert[projection + projection_2]
+        except KeyError:
+            print(
+                "The Terms are not in the initial dataset. Embedding the new terms..."
+            )
+
+            self.df_bert = self.compute_projection_embeddings(projection, projection_2)
+
         # Select the dimentions of interetst in all the similarity matric
         df_proj = self.df_bert[projection + projection_2]
+
+        df_proj[projection_str] = df_proj[projection[0]] - df_proj[projection[1]]
+        df_proj[projection_str_2] = df_proj[projection_2[0]] - df_proj[projection_2[1]]
+
         df_proj[projection_str] = df_proj[projection[0]] - df_proj[projection[1]]
         df_proj[projection_str_2] = df_proj[projection_2[0]] - df_proj[projection_2[1]]
 
@@ -208,8 +269,21 @@ class Bourdieu:
         projection_str = "-".join(projection)
         projection_str_2 = "-".join(projection_2)
 
+        try:
+            self.df_bert[projection + projection_2]
+        except KeyError:
+            print(
+                "The Terms are not in the initial dataset. Embedding the new terms..."
+            )
+
+            self.df_bert = self.compute_projection_embeddings(projection, projection_2)
+
         # Only select terms of interests in the similarity matrix
         df_proj = self.df_bert[projection + projection_2]
+
+        df_proj[projection_str] = df_proj[projection[0]] - df_proj[projection[1]]
+        df_proj[projection_str_2] = df_proj[projection_2[0]] - df_proj[projection_2[1]]
+
         df_proj[projection_str] = df_proj[projection[0]] - df_proj[projection[1]]
         df_proj[projection_str_2] = df_proj[projection_2[0]] - df_proj[projection_2[1]]
 
@@ -223,6 +297,7 @@ class Bourdieu:
         df_proj[projection_str_2] = scaler.fit_transform(
             df_proj[projection_str_2].values.reshape(-1, 1)
         )
+
         # Merge with the original data
         fin = pd.merge(
             df_proj[["term", projection_str, projection_str_2]],
@@ -232,7 +307,7 @@ class Bourdieu:
         )
         # Compute the mean for every id: every id is the mean of all the texts it contains
         res = (
-            fin.groupby([self.index_var, self.text_var])
+            fin.groupby([self.text_var])
             .agg(
                 projection_str=(projection_str, "mean"),
                 projection_str_2=(projection_str_2, "mean"),
