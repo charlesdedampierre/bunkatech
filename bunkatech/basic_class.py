@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 from .semantics.extract_terms import extract_terms_df
 from .semantics.indexer import indexer
 from sentence_transformers import SentenceTransformer
