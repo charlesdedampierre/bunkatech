@@ -1,11 +1,8 @@
-from ..basic_class import BasicSemantics
 import pandas as pd
-import plotly.graph_objs as go
-from plotly.subplots import make_subplots
 import numpy as np
-import plotly.io as pio
-import plotly.express as px
+import plotly.graph_objs as go
 from ..specificity import specificity
+from ..basic_class import BasicSemantics
 
 
 def wrap_by_word(string, n_words):
