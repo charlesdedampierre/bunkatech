@@ -96,11 +96,12 @@ class NestedTopicModeling(BasicSemantics):
 
         # Create clusters names
         self.h_clusters_names = hierarchical_clusters_label(merge)
-        self.h_clusters_names = self.h_clusters_names.rename(
-            columns={"main form": "lemma"}
+        self.h_clusters_names = self.h_clusters_names.drop(
+            ["main form", "text", self.text_var], axis=1
         )
-
-        self.h_clusters_names = self.h_clusters_names.drop(self.text_var, axis=1)
+        self.h_clusters_names = self.h_clusters_names.drop_duplicates().reset_index(
+            drop=True
+        )
 
         return self.h_clusters_names
 
@@ -217,6 +218,7 @@ class NestedTopicModeling(BasicSemantics):
             self.h_clusters_names,
             on=self.index_var,
         )
+
         res = pd.merge(res, self.data, on=self.index_var)
 
         if not hasattr(self, "embeddings_2d"):

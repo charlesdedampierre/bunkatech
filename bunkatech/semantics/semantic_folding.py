@@ -8,7 +8,7 @@ from sklearn.cluster import KMeans
 # from utils import wrap_by_word
 import numpy as np
 from sentence_transformers import SentenceTransformer
-from bunkatech.search.fts5_search import fts5_search
+from ..search.fts5_search import fts5_search
 
 
 def wrap_by_word(string, n_words):

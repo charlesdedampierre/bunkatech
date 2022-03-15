@@ -9,16 +9,24 @@ from bunkatech import BasicSemantics
 
 from bunkatech.topic_modeling.nested import NestedTopicModeling
 
-data = pd.read_csv(
+"""data = pd.read_csv(
     "/Users/charlesdedampierre/Desktop/ENS Projects/imaginary-world/db_film_iw (2).csv",
     index_col=[0],
 )
+"""
+data = pd.read_excel(
+    "/Users/charlesdedampierre/Desktop/SciencePo Projects/shaping-ai/labeling/SHAI-LABELS-ROUND-1.xlsx"
+)
 
-nested = NestedTopicModeling(data=data, text_var="description", index_var="imdb")
+data["bindex"] = data.index
 
+nested = NestedTopicModeling(data=data, text_var="title_lead", index_var="bindex")
+folding_1 = ["problèmes", "danger", "menace"]
+folding_2 = ["bienfaits", "opportunité", "génial", "innovation"]
+folding = [folding_1, folding_2]
 
 nested.fit(
-    folding=None,
+    folding=folding,
     docs_embedding_model="tfidf",
     extract_terms=True,
     terms_embedding=False,
@@ -30,12 +38,13 @@ nested.fit(
     terms_include_pos=["NOUN", "PROPN", "ADJ"],
     terms_include_types=["PERSON", "ORG"],
     terms_embedding_model="distiluse-base-multilingual-cased-v1",
-    language="en",
+    language="fr",
 )
 
+fig = nested.visualize_embeddings()
+fig.show()
 
-test = nested.docs_embeddings.reset_index().shape
-print(test)
+
 # h_clusters_names = nested.nested_frame()
 # print(h_clusters_names)
 
