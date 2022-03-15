@@ -6,7 +6,7 @@ import plotly.express as px
 def topics_nested(
     nested_topics: pd.DataFrame,
     index_var,
-    size_rule="topic_documents",
+    size_rule="docs_size",
     max_depth=2,
     width=1000,
     height=1000,
@@ -44,7 +44,7 @@ def topics_nested(
 
     lemma = [f"lemma_{x}" for x in range(max_depth + 1)]
 
-    if size_rule == "topic_documents":
+    if size_rule == "docs_size":
         group = (
             nested_topics.groupby("lemma_2")
             .agg(topic_size=(index_var, "count"))

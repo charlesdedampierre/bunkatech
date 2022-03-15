@@ -7,7 +7,7 @@ from bunkatech.semantics.bourdieu import Bourdieu
 from bunkatech.time import SemanticsTrend
 from bunkatech import BasicSemantics
 
-from bunkatech.topic_modeling.nested import NestedTopicModeling
+from bunkatech.topic_modeling.nested_topics import NestedTopicModeling
 
 """data = pd.read_csv(
     "/Users/charlesdedampierre/Desktop/ENS Projects/imaginary-world/db_film_iw (2).csv",
