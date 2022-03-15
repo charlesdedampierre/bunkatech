@@ -1,18 +1,12 @@
 import pandas as pd
 import numpy as np
 import plotly.graph_objs as go
-from ..specificity import specificity
-from ..basic_class import BasicSemantics
-import pandas as pd
-import plotly.graph_objects as go
-import numpy as np
+
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import LinearRegression
+from ..basic_class import BasicSemantics
 
-from .extract_terms import extract_terms_df
-from .indexer import indexer
-from sentence_transformers import SentenceTransformer
 
 pd.options.mode.chained_assignment = None
 
@@ -28,6 +22,12 @@ def wrap_by_word(string, n_words):
 
 
 class Bourdieu(BasicSemantics):
+    """This class creates a two dimentional space where it projects terms or documents.
+    The two spaces are created from words continuum. such as 'good-bad' and 'man-woman'.
+    We then analyse whether these is a correlation or not in the space computes by transformers
+    (like Sbert)
+    """
+
     def __init__(self, data, text_var, index_var) -> None:
         super().__init__()
         self.data = data
@@ -74,7 +74,10 @@ class Bourdieu(BasicSemantics):
     def compute_projection_embeddings(
         self, projection_1=["cooperative", "salaud"], projection_2=["woman", "man"]
     ):
-        """Compute embeddings of the newly projected terms and associate them to the initial embeddings matrix"""
+        """Compute embeddings of the newly projected terms and
+        associate them to the initial embeddings matrix
+
+        """
 
         projection_all = projection_1 + projection_2
         self.projection_all = projection_all
@@ -112,17 +115,15 @@ class Bourdieu(BasicSemantics):
         regression=True,
         type="terms",
     ):
+        """
+
+        Create the projection Space with plotly based on two queries: projection_1 & projection_2
+
+        """
 
         projection_str_1 = "-".join(projection_1)
         projection_str_2 = "-".join(projection_2)
 
-        """   try:
-            self.df_bert[projection_1 + projection_2]
-        except KeyError:
-            print(
-                "The Terms are not in the initial dataset. Embedding the new terms..."
-            )
-        """
         self.df_bert = self.compute_projection_embeddings(projection_1, projection_2)
 
         # Select the dimentions of interetst in all the similarity matric

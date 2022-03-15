@@ -2,6 +2,7 @@ import pandas as pd
 from .semantics.extract_terms import extract_terms_df
 from .semantics.indexer import indexer
 from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 class BasicSemantics:
@@ -79,16 +80,21 @@ class BasicSemantics:
 
     def embeddings(self, embedding_model="distiluse-base-multilingual-cased-v1"):
 
-        # Embed the docs with sbert
-        model = SentenceTransformer(embedding_model)
-        docs = list(self.data[self.text_var])
-        docs_embeddings = model.encode(docs, show_progress_bar=True)
+        if embedding_model == "tfidf":
+            model = TfidfVectorizer(max_features=20000)
+            sentences = list(self.data[self.text_var])
+            docs_embeddings = model.fit_transform(sentences)
+            docs_embeddings = docs_embeddings.todense()
 
-        # Create the Dataframe
+        else:
+            # Embed the docs with sbert
+            model = SentenceTransformer(embedding_model)
+            docs = list(self.data[self.text_var])
+            docs_embeddings = model.encode(docs, show_progress_bar=True)
+
+            # Create the Dataframe
         df_embeddings = pd.DataFrame(docs_embeddings)
         df_embeddings.index = self.data[self.index_var]
-        # df_embeddings[self.index_var] = self.data[self.index_var]
-        # df_embeddings.insert(0, self.index_var, df_embeddings.pop(self.index_var))
 
         self.embedding_model = embedding_model
         self.docs_embeddings = df_embeddings

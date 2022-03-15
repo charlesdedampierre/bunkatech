@@ -4,10 +4,21 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import plotly
 import plotly.express as px
 from sklearn.cluster import KMeans
-from utils import wrap_by_word
+
+# from utils import wrap_by_word
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from bunkatech.search.fts5_search import fts5_search
+
+
+def wrap_by_word(string, n_words):
+    """returns a string where \\n is inserted between every n words"""
+    a = string.split()
+    ret = ""
+    for i in range(0, len(a), n_words):
+        ret += " ".join(a[i : i + n_words]) + "<br>"
+
+    return ret
 
 
 def semantic_folding(
@@ -25,6 +36,7 @@ def semantic_folding(
     full_research = pd.DataFrame()
     count = 1
     for query in semantic_group:
+        print(query)
         res_search = fts5_search(query, docs)
         res_search["semantics"] = count
         # for the moment only give 1 if there is at least one term in the text
@@ -41,6 +53,7 @@ def semantic_folding(
     df_search = df_search.drop("docs", axis=1)
     # the 0 with be the category of everything that is no taken into account by the foldings
 
+    # the folding_only paramter only keeps the data that stricly contains one of the terms
     if folding_only is True:
         df_search = df_search.dropna()
     else:
