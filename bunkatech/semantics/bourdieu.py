@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import plotly.graph_objs as go
+import random
 
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import MinMaxScaler
@@ -166,6 +167,10 @@ class Bourdieu(BasicSemantics):
                 }
             )
 
+            # Rescale
+            res[projection_str_1] = scaler.fit_transform(res[[projection_str_1]])
+            res[projection_str_2] = scaler.fit_transform(res[[projection_str_2]])
+
             final_proj = res.copy()
             name_var = self.text_var
 
@@ -231,7 +236,7 @@ class Bourdieu(BasicSemantics):
             )
 
         fig.update_layout(
-            title="Bourdieu Projection",
+            title="Semantic Origami",
             height=height,
             width=width,
             xaxis_title="<--- " + " | ".join(reversed(projection_1)) + " --->",
@@ -248,6 +253,7 @@ class Bourdieu(BasicSemantics):
         height: int = 1000,
         width: int = 1000,
         type="terms",
+        dispersion=True,
     ):
         """
 
@@ -273,6 +279,11 @@ class Bourdieu(BasicSemantics):
             1 - df_proj[projection_str_1] ** 2
         )  # Pythagore
 
+        scaler_pyth = MinMaxScaler(feature_range=(0, 1))
+        df_proj["project_angle"] = scaler_pyth.fit_transform(
+            df_proj["project_angle"].values.reshape(-1, 1)
+        )
+
         if type == "documents":
             # Merge with the original indexed data. The term is the key here
             fin = pd.merge(
@@ -292,7 +303,12 @@ class Bourdieu(BasicSemantics):
                     "projection_str": projection_str_1,
                 }
             )
+
             res["project_angle"] = np.sqrt(1 - res[projection_str_1] ** 2)
+            res["project_angle"] = scaler_pyth.fit_transform(res[["project_angle"]])
+
+            # Rescale
+            res[projection_str_1] = scaler.fit_transform(res[[projection_str_1]])
 
             final_proj = res.copy()
             name_var = self.text_var
@@ -309,6 +325,15 @@ class Bourdieu(BasicSemantics):
 
         else:
             raise ValueError("Please chose between 'terms' or 'documents'")
+        if dispersion:
+            # Random the data to make them more visible
+            final_proj["project_angle"] = final_proj["project_angle"].apply(
+                lambda x: x
+                * random.uniform(
+                    0.1,
+                    1,
+                )
+            )
 
         # Plot everything
         fig = go.Figure()
@@ -344,7 +369,7 @@ class Bourdieu(BasicSemantics):
         fig.add_trace(trace_2)
 
         fig.update_layout(
-            title="Bourdieu Projection",
+            title="Semantic Origami",
             height=height,
             width=width,
             xaxis_title="<--- " + " | ".join(reversed(projection_1)) + " --->",
