@@ -132,9 +132,6 @@ class Bourdieu(BasicSemantics):
         df_proj[projection_str_1] = df_proj[projection_1[0]] - df_proj[projection_1[1]]
         df_proj[projection_str_2] = df_proj[projection_2[0]] - df_proj[projection_2[1]]
 
-        df_proj[projection_str_1] = df_proj[projection_1[0]] - df_proj[projection_1[1]]
-        df_proj[projection_str_2] = df_proj[projection_2[0]] - df_proj[projection_2[1]]
-
         # Scale the results from -1 to 1
         scaler = MinMaxScaler(feature_range=(-1, 1))
         df_proj["term"] = df_proj.index
@@ -239,6 +236,118 @@ class Bourdieu(BasicSemantics):
             width=width,
             xaxis_title="<--- " + " | ".join(reversed(projection_1)) + " --->",
             yaxis_title="<--- " + " | ".join(reversed(projection_2)) + " --->",
+        )
+
+        self.df_fig = final_proj
+
+        return fig
+
+    def bourdieu_projection_unique(
+        self,
+        projection_1: list,
+        height: int = 1000,
+        width: int = 1000,
+        type="terms",
+    ):
+        """
+
+        Create the projection Space with plotly based on two queries: projection_1 & projection_2
+
+        """
+
+        projection_str_1 = "-".join(projection_1)
+        self.df_bert = self.compute_projection_embeddings(projection_1)
+
+        # Select the dimentions of interetst in all the similarity matric
+        df_proj = self.df_bert[projection_1]
+        df_proj[projection_str_1] = df_proj[projection_1[0]] - df_proj[projection_1[1]]
+
+        # Scale the results from -1 to 1
+        scaler = MinMaxScaler(feature_range=(-1, 1))
+        df_proj["term"] = df_proj.index
+        df_proj[projection_str_1] = scaler.fit_transform(
+            df_proj[projection_str_1].values.reshape(-1, 1)
+        )
+
+        df_proj["project_angle"] = np.sqrt(
+            1 - df_proj[projection_str_1] ** 2
+        )  # Pythagore
+
+        if type == "documents":
+            # Merge with the original indexed data. The term is the key here
+            fin = pd.merge(
+                df_proj[["term", projection_str_1]],
+                self.df_indexed[[self.index_var, "main form", self.text_var]],
+                left_on="term",
+                right_on="main form",
+            )
+            # Compute the mean for every id: every id is the mean of all the texts it contains
+            res = (
+                fin.groupby([self.text_var])
+                .agg(projection_str=(projection_str_1, "mean"))
+                .reset_index()
+            )
+            res = res.rename(
+                columns={
+                    "projection_str": projection_str_1,
+                }
+            )
+            res["project_angle"] = np.sqrt(1 - res[projection_str_1] ** 2)
+
+            final_proj = res.copy()
+            name_var = self.text_var
+
+            # Get rid of nan values
+            final_proj = final_proj[final_proj[name_var].notna()]
+            final_proj[name_var] = final_proj[name_var].apply(
+                lambda x: wrap_by_word(x, 10)
+            )
+
+        elif type == "terms":
+            final_proj = df_proj.copy()
+            name_var = "term"
+
+        else:
+            raise ValueError("Please chose between 'terms' or 'documents'")
+
+        # Plot everything
+        fig = go.Figure()
+
+        # Plot two axes x and y to visualisy scale the results (like PCA projection)
+        trace_1 = go.Scatter(
+            x=[-1.1, 1.1],
+            y=[0, 0],
+            mode="lines",
+            line_color="grey",
+            name=projection_str_1,
+        )
+
+        trace_2 = go.Scatter(
+            x=[0, 0],
+            y=[0, 1.1],
+            mode="lines",
+            line_color="grey",
+            name="project_angle",
+        )
+
+        # Plot the elements
+        trace_scatter = go.Scatter(
+            x=final_proj[projection_str_1],
+            y=final_proj["project_angle"],
+            text=final_proj[name_var],
+            mode="markers",
+            name=name_var,
+        )
+
+        fig.add_trace(trace_scatter)
+        fig.add_trace(trace_1)
+        fig.add_trace(trace_2)
+
+        fig.update_layout(
+            title="Bourdieu Projection",
+            height=height,
+            width=width,
+            xaxis_title="<--- " + " | ".join(reversed(projection_1)) + " --->",
         )
 
         self.df_fig = final_proj

@@ -36,6 +36,9 @@ class PCATopic:
         self.text_var = text_var
         self.data = self.data[self.data[self.text_var].notna()].reset_index(drop=True)
 
+    def fit(self):
+        pass
+
     def pca_computation(self, n_components=4, language="english"):
         """
         For every PCA axix, get the top and tail terms to describe them
@@ -47,6 +50,8 @@ class PCATopic:
 
         X = np.array(X_tfidf.todense())
         X = X - X.mean(axis=0)
+
+        # recompute this part
 
         # Get the PCA
         self.pca = PCA(n_components=n_components)
