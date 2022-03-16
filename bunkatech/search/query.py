@@ -7,9 +7,9 @@ def make_query(
     data: pd.DataFrame,
     model: SentenceTransformer,
     corpus_embeddings: np.array,
-    query: list,  
+    query: list,
     data_id: str = "bindex",
-    top_n: int = 10, 
+    top_n: int = 10,
 ):
     """Compare the embedding of a query to the global embedding end merge the results
     with the index of data
@@ -24,7 +24,7 @@ def make_query(
         [type]: a Dataframe with the index and the score of the query. The higher, the similar
     """
 
-    #top_n = int(round(len(data) / 100, 0))
+    # top_n = int(round(len(data) / 100, 0))
     # top_k = min(top_n, len(corpus))
 
     # Compute the scores
