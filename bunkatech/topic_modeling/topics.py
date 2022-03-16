@@ -1,5 +1,6 @@
 import pandas as pd
 import plotly.express as px
+import numpy as np
 import warnings
 import umap
 from ..basic_class import BasicSemantics
@@ -8,17 +9,24 @@ from ..visualization.make_bubble import wrap_by_word
 from ..networks.centroids import find_centroids
 from sklearn.cluster import KMeans
 from ..specificity import specificity
+from .time_utils import cosine_distance_exponential_time_decay
+import logging
+
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s : %(message)s", level=logging.INFO
+)
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 pd.options.mode.chained_assignment = None
 
 
 class TopicModeling(BasicSemantics):
-    def __init__(self, data, text_var, index_var) -> None:
+    def __init__(self, data, text_var, index_var, date_var=None) -> None:
         super().__init__()
         self.data = data
         self.text_var = text_var
         self.index_var = index_var
+        self.date_var = date_var
 
     def fit(
         self,
@@ -52,13 +60,26 @@ class TopicModeling(BasicSemantics):
             super().terms_embeddings(embedding_model=terms_embedding_model)
 
         super().embeddings(embedding_model=docs_embedding_model)
-
         # reduce embeddings
         reduction_model = umap.UMAP(
             n_components=5, n_neighbors=10, metric="cosine", verbose=True
         )
-        reduction_embeddings = reduction_model.fit_transform(self.docs_embeddings)
-        self.docs_embeddings = pd.DataFrame(reduction_embeddings)
+        self.docs_embeddings = reduction_model.fit_transform(self.docs_embeddings)
+
+        """if self.date_var is not None:
+
+            logging.info("Time Normalization...")
+
+            self.data = self.data[self.data[self.date_var].notna()]
+            self.data[self.date_var] = pd.to_datetime(self.data[self.date_var])
+            timestamps = self.data[self.date_var].values.astype(np.int64) // 10 ** 9
+            self.docs_embeddings = cosine_distance_exponential_time_decay(
+                self.docs_embeddings,
+                timestamps=timestamps,
+                temperature=10,
+            )"""
+
+        self.docs_embeddings = pd.DataFrame(self.docs_embeddings)
         self.docs_embeddings.index = self.data[self.index_var]
 
     def get_clusters(self, topic_number=20, top_terms=10):
@@ -162,7 +183,9 @@ class TopicModeling(BasicSemantics):
             on=self.index_var,
         )
         df_centroid = pd.merge(
-            res.drop([self.text_var, "cluster"], axis=1), self.data, on=self.index_var
+            df_centroid.drop([self.text_var, "cluster"], axis=1),
+            self.data,
+            on=self.index_var,
         )
 
         df_centroid = df_centroid.rename(
@@ -178,3 +201,8 @@ class TopicModeling(BasicSemantics):
         )
 
         return res
+
+    def temporal_topics(self):
+        if self.date_var is None:
+            raise ValueError("Please fit the class with the 'date' variable")
+        return None
