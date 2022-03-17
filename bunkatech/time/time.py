@@ -15,20 +15,15 @@ def wrap_by_word(string, n_words):
     return ret
 
 
-class SemanticsTrend(BasicSemantics):
-    def __init__(self, data, text_var, index_var, date_var) -> None:
-        super().__init__()
-        self.data = data
-        self.text_var = text_var
-        self.index_var = index_var
-        self.date_var = date_var
-        self.data[self.date_var] = pd.to_datetime(self.data[self.date_var])
-
-    def fit(
+class SemanticsTrends(BasicSemantics):
+    def __init__(
         self,
+        data,
+        text_var,
+        index_var,
         extract_terms=True,
-        docs_embedding=True,
         terms_embedding=True,
+        docs_embedding=True,
         sample_size_terms=500,
         terms_limit=500,
         terms_ents=True,
@@ -37,29 +32,44 @@ class SemanticsTrend(BasicSemantics):
         terms_include_pos=["NOUN", "PROPN", "ADJ"],
         terms_include_types=["PERSON", "ORG"],
         terms_embedding_model="distiluse-base-multilingual-cased-v1",
-        docs_embedding_model="distiluse-base-multilingual-cased-v1",
+        docs_embedding_model="tfidf",
         language="en",
-    ):
+        terms_path=None,
+        terms_embeddings_path=None,
+        docs_embeddings_path=None,
+    ) -> None:
 
-        super().fit(data=self.data, text_var=self.text_var, index_var=self.index_var)
+        BasicSemantics.__init__(
+            self,
+            data=data,
+            text_var=text_var,
+            index_var=index_var,
+            terms_path=terms_path,
+            terms_embeddings_path=terms_embeddings_path,
+            docs_embeddings_path=docs_embeddings_path,
+        )
 
-        if extract_terms:
-            super().extract_terms(
-                sample_size=sample_size_terms,
-                limit=terms_limit,
-                ents=terms_ents,
-                ncs=terms_ncs,
-                ngrams=terms_ngrams,
-                include_pos=terms_include_pos,
-                include_types=terms_include_types,
-                language=language,
-            )
+        BasicSemantics.fit(
+            self,
+            extract_terms=extract_terms,
+            terms_embedding=terms_embedding,
+            docs_embedding=docs_embedding,
+            sample_size_terms=sample_size_terms,
+            terms_limit=terms_limit,
+            terms_ents=terms_ents,
+            terms_ngrams=terms_ngrams,
+            terms_ncs=terms_ncs,
+            terms_include_pos=terms_include_pos,
+            terms_include_types=terms_include_types,
+            terms_embedding_model=terms_embedding_model,
+            docs_embedding_model=docs_embedding_model,
+            language=language,
+        )
 
-        if terms_embedding:
-            super().terms_embeddings(embedding_model=terms_embedding_model)
-
-        if docs_embedding:
-            super().embeddings(embedding_model=docs_embedding_model)
+    def fit(self, date_var):
+        # Only Fit on the date
+        self.date_var = date_var
+        self.data[self.date_var] = pd.to_datetime(self.data[self.date_var])
 
     def moving_average_comparison(
         self,
@@ -338,10 +348,8 @@ class SemanticsTrend(BasicSemantics):
         Get the specific terms by time period between two moving average. THis is a way to understand
         what are the topics when there is an outburst of comments
         """
-        df_indexed = self.df_indexed[
-            [self.index_var, self.text_var, "main form"]
-        ].drop_duplicates()
-        df_terms = pd.merge(self.data, df_indexed, on=self.index_var)
+
+        df_terms = pd.merge(self.data, self.df_indexed.reset_index(), on=self.index_var)
 
         # Merge timeline and terms
         df_date = pd.concat([x for x in self.dfs]).reset_index()

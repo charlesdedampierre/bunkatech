@@ -2,8 +2,7 @@ from bunkatech.nested_topic_modeling import NestedTopicModeling
 from bunkatech.semantics.vocabulary_extension import sbert_extension
 import pandas as pd
 
-
-from bunkatech.semantics.bourdieu import Bourdieu
+from bunkatech.semantics.origami import Origami
 from bunkatech.time import SemanticsTrend
 from bunkatech import BasicSemantics
 

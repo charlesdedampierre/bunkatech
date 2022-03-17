@@ -31,18 +31,14 @@ def wrap_by_word(string, n_words):
 
 
 class PCATopic(BasicSemantics):
-    def __init__(self, data, text_var, index_var) -> None:
-        BasicSemantics.__init__(self)
-        self.data = data
-        self.text_var = text_var
-        self.index_var = index_var
-        self.data = self.data[self.data[self.text_var].notna()].reset_index(drop=True)
-
-    def fit(
+    def __init__(
         self,
+        data,
+        text_var,
+        index_var,
         extract_terms=True,
-        docs_embedding=True,
         terms_embedding=True,
+        docs_embedding=True,
         sample_size_terms=500,
         terms_limit=500,
         terms_ents=True,
@@ -51,30 +47,45 @@ class PCATopic(BasicSemantics):
         terms_include_pos=["NOUN", "PROPN", "ADJ"],
         terms_include_types=["PERSON", "ORG"],
         terms_embedding_model="distiluse-base-multilingual-cased-v1",
-        docs_embedding_model="distiluse-base-multilingual-cased-v1",
+        docs_embedding_model="tfidf",
         language="en",
-    ):
-        BasicSemantics.fit(
-            self, data=self.data, text_var=self.text_var, index_var=self.index_var
+        terms_path=None,
+        terms_embeddings_path=None,
+        docs_embeddings_path=None,
+    ) -> None:
+
+        BasicSemantics.__init__(
+            self,
+            data=data,
+            text_var=text_var,
+            index_var=index_var,
+            terms_path=terms_path,
+            terms_embeddings_path=terms_embeddings_path,
+            docs_embeddings_path=docs_embeddings_path,
         )
-        if extract_terms:
-            BasicSemantics.extract_terms(
-                self,
-                sample_size=sample_size_terms,
-                limit=terms_limit,
-                ents=terms_ents,
-                ncs=terms_ncs,
-                ngrams=terms_ngrams,
-                include_pos=terms_include_pos,
-                include_types=terms_include_types,
-                language=language,
-            )
 
-        if terms_embedding:
-            BasicSemantics.terms_embeddings(self, embedding_model=terms_embedding_model)
+        BasicSemantics.fit(
+            self,
+            extract_terms=extract_terms,
+            terms_embedding=terms_embedding,
+            docs_embedding=docs_embedding,
+            sample_size_terms=sample_size_terms,
+            terms_limit=terms_limit,
+            terms_ents=terms_ents,
+            terms_ngrams=terms_ngrams,
+            terms_ncs=terms_ncs,
+            terms_include_pos=terms_include_pos,
+            terms_include_types=terms_include_types,
+            terms_embedding_model=terms_embedding_model,
+            docs_embedding_model=docs_embedding_model,
+            language=language,
+        )
 
-        if docs_embedding:
-            BasicSemantics.embeddings(self, embedding_model=docs_embedding_model)
+    def fit(self, n_components=4, head_tail_number=5):
+        self.pca_computation(n_components=n_components)
+        self.pca_topics = self.get_top_terms_pca(head_tail_number=head_tail_number)
+
+        return self.pca_topics
 
     def pca_computation(self, n_components=4):
         """
@@ -94,7 +105,7 @@ class PCATopic(BasicSemantics):
         # Merge with the indexed terms. Documents that have no index terms get the mean of
         # the dataset
         res = pd.merge(
-            df_emb, self.df_indexed[[self.index_var, "main form"]], on="main form"
+            df_emb, self.df_indexed[["main form"]].reset_index(), on="main form"
         ).drop("main form", axis=1)
 
         # merge with the original data to get the index that have no indexed terms.
@@ -201,12 +212,6 @@ class PCATopic(BasicSemantics):
 
         return fin_cos
 
-    def get_topics(self, n_components=4, head_tail_number=5):
-        self.pca_computation(n_components=n_components)
-        self.pca_topics = self.get_top_terms_pca(head_tail_number=head_tail_number)
-
-        return self.pca_topics
-
     def visualize(self, dim_1, dim_2, width=1000, height=1000):
         # visualize the embeddings
 
@@ -254,9 +259,3 @@ if __name__ == "__main__":
         index_col=[0],
     )
     data = data.sample(5000)
-
-    # Get with the terms dimensions PCA are computed on
-    pca_topic = PCATopic(data=data, text_var="description")
-    res = pca_topic.get_topics(n_components=10, head_tail_number=3, language="english")
-    fig = pca_topic.visualize(dim_1="pca_1", dim_2="pca_2", width=1000, height=1000)
-    fig.show()

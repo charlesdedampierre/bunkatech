@@ -22,17 +22,14 @@ pd.options.mode.chained_assignment = None
 
 
 class NestedTopicModeling(BasicSemantics):
-    def __init__(self, data, text_var, index_var) -> None:
-        super().__init__()
-        self.data = data
-        self.text_var = text_var
-        self.index_var = index_var
-
-    def fit(
+    def __init__(
         self,
-        folding=None,
+        data,
+        text_var,
+        index_var,
         extract_terms=True,
         terms_embedding=True,
+        docs_embedding=True,
         sample_size_terms=500,
         terms_limit=500,
         terms_ents=True,
@@ -43,24 +40,40 @@ class NestedTopicModeling(BasicSemantics):
         terms_embedding_model="distiluse-base-multilingual-cased-v1",
         docs_embedding_model="tfidf",
         language="en",
-    ):
+        terms_path=None,
+        terms_embeddings_path=None,
+        docs_embeddings_path=None,
+    ) -> None:
 
-        super().fit(data=self.data, text_var=self.text_var, index_var=self.index_var)
+        BasicSemantics.__init__(
+            self,
+            data=data,
+            text_var=text_var,
+            index_var=index_var,
+            terms_path=terms_path,
+            terms_embeddings_path=terms_embeddings_path,
+            docs_embeddings_path=docs_embeddings_path,
+        )
 
-        if extract_terms:
-            super().extract_terms(
-                sample_size=sample_size_terms,
-                limit=terms_limit,
-                ents=terms_ents,
-                ncs=terms_ncs,
-                ngrams=terms_ngrams,
-                include_pos=terms_include_pos,
-                include_types=terms_include_types,
-                language=language,
-            )
+        BasicSemantics.fit(
+            self,
+            extract_terms=extract_terms,
+            terms_embedding=terms_embedding,
+            docs_embedding=docs_embedding,
+            sample_size_terms=sample_size_terms,
+            terms_limit=terms_limit,
+            terms_ents=terms_ents,
+            terms_ngrams=terms_ngrams,
+            terms_ncs=terms_ncs,
+            terms_include_pos=terms_include_pos,
+            terms_include_types=terms_include_types,
+            terms_embedding_model=terms_embedding_model,
+            docs_embedding_model=docs_embedding_model,
+            language=language,
+        )
 
-        if terms_embedding:
-            super().terms_embeddings(embedding_model=terms_embedding_model)
+    def fit(self, folding=None):
+        # When fit, get the Folding and the Structure of the nested clusters
 
         if folding is not None:
 
@@ -68,7 +81,7 @@ class NestedTopicModeling(BasicSemantics):
                 folding,
                 self.data,
                 text_var=self.text_var,
-                model=docs_embedding_model,
+                model=self.docs_embedding_model,
                 dimension_folding=5,
                 folding_only=False,
             )
@@ -77,7 +90,6 @@ class NestedTopicModeling(BasicSemantics):
             self.docs_embeddings.index = self.data[self.index_var]
 
         else:
-            super().embeddings(embedding_model=docs_embedding_model)
             # reduce embeddings
             reduction_model = umap.UMAP(
                 n_components=5, n_neighbors=10, metric="cosine", verbose=True
@@ -86,18 +98,19 @@ class NestedTopicModeling(BasicSemantics):
             self.docs_embeddings = pd.DataFrame(reduction_embeddings)
             self.docs_embeddings.index = self.data[self.index_var]
 
+        #  Get the  specific computation
         self.nested_frame()
 
     def nested_frame(self):
 
         # Create clusters
         h_clusters = hierarchical_clusters(self.docs_embeddings.reset_index())
-        merge = pd.merge(h_clusters, self.df_indexed, on=self.index_var)
+        merge = pd.merge(h_clusters, self.df_indexed.reset_index(), on=self.index_var)
 
         # Create clusters names
         self.h_clusters_names = hierarchical_clusters_label(merge)
         self.h_clusters_names = self.h_clusters_names.drop(
-            ["main form", "text", self.text_var], axis=1
+            ["main form", "text"], axis=1
         )
         self.h_clusters_names = self.h_clusters_names.drop_duplicates().reset_index(
             drop=True
@@ -194,7 +207,11 @@ class NestedTopicModeling(BasicSemantics):
         elif map_type == "sankey":
             # Make Sankey Diagram
             map = make_sankey(
-                self.h_clusters_names, field="Dataset", index_var=self.index_var
+                self.h_clusters_names,
+                field="Dataset",
+                index_var=self.index_var,
+                width=width,
+                height=height,
             )
 
         else:

@@ -21,16 +21,14 @@ pd.options.mode.chained_assignment = None
 
 
 class TopicModeling(BasicSemantics):
-    def __init__(self, data, text_var, index_var, date_var=None) -> None:
-        super().__init__()
-        self.data = data
-        self.text_var = text_var
-        self.index_var = index_var
-        self.date_var = date_var
-
-    def fit(
+    def __init__(
         self,
+        data,
+        text_var,
+        index_var,
+        extract_terms=True,
         terms_embedding=True,
+        docs_embedding=True,
         sample_size_terms=500,
         terms_limit=500,
         terms_ents=True,
@@ -41,31 +39,37 @@ class TopicModeling(BasicSemantics):
         terms_embedding_model="distiluse-base-multilingual-cased-v1",
         docs_embedding_model="tfidf",
         language="en",
-    ):
+        terms_path=None,
+        terms_embeddings_path=None,
+        docs_embeddings_path=None,
+    ) -> None:
 
-        super().fit(data=self.data, text_var=self.text_var, index_var=self.index_var)
+        BasicSemantics.__init__(
+            self,
+            data=data,
+            text_var=text_var,
+            index_var=index_var,
+            terms_path=terms_path,
+            terms_embeddings_path=terms_embeddings_path,
+            docs_embeddings_path=docs_embeddings_path,
+        )
 
-        super().extract_terms(
-            sample_size=sample_size_terms,
-            limit=terms_limit,
-            ents=terms_ents,
-            ncs=terms_ncs,
-            ngrams=terms_ngrams,
-            include_pos=terms_include_pos,
-            include_types=terms_include_types,
+        BasicSemantics.fit(
+            self,
+            extract_terms=extract_terms,
+            terms_embedding=terms_embedding,
+            docs_embedding=docs_embedding,
+            sample_size_terms=sample_size_terms,
+            terms_limit=terms_limit,
+            terms_ents=terms_ents,
+            terms_ngrams=terms_ngrams,
+            terms_ncs=terms_ncs,
+            terms_include_pos=terms_include_pos,
+            terms_include_types=terms_include_types,
+            terms_embedding_model=terms_embedding_model,
+            docs_embedding_model=docs_embedding_model,
             language=language,
         )
-
-        if terms_embedding:
-            super().terms_embeddings(embedding_model=terms_embedding_model)
-
-        super().embeddings(embedding_model=docs_embedding_model)
-        # reduce embeddings
-        reduction_model = umap.UMAP(
-            n_components=5, n_neighbors=10, metric="cosine", verbose=True
-        )
-        self.docs_embeddings = reduction_model.fit_transform(self.docs_embeddings)
-
         """if self.date_var is not None:
 
             logging.info("Time Normalization...")
@@ -79,9 +83,6 @@ class TopicModeling(BasicSemantics):
                 temperature=10,
             )"""
 
-        self.docs_embeddings = pd.DataFrame(self.docs_embeddings)
-        self.docs_embeddings.index = self.data[self.index_var]
-
     def get_clusters(self, topic_number=20, top_terms=10):
 
         self.data["cluster"] = (
@@ -92,7 +93,9 @@ class TopicModeling(BasicSemantics):
 
         # Get the Topics Names
         df_clusters = pd.merge(
-            self.data[[self.index_var, "cluster"]], self.df_indexed, on=self.index_var
+            self.data[[self.index_var, "cluster"]],
+            self.df_indexed.reset_index(),
+            on=self.index_var,
         )
 
         _, _, edge = specificity(

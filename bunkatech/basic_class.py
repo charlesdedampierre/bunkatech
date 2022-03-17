@@ -16,14 +16,71 @@ class BasicSemantics:
 
     """
 
-    def __init__(self) -> None:
-        pass
-
-    def fit(self, data, text_var, index_var):
-        data = data[data[text_var].notna()].reset_index(drop=True)
-        self.data = data
+    def __init__(
+        self,
+        data,
+        text_var,
+        index_var,
+        terms_path=None,
+        terms_embeddings_path=None,
+        docs_embeddings_path=None,
+    ):
+        self.data = data[data[text_var].notna()].reset_index(drop=True)
         self.text_var = text_var
         self.index_var = index_var
+
+        # Load existing dataset if they exist
+        if terms_path is not None:
+            self.terms = pd.read_csv(terms_path)
+            self.index_terms(projection=False, db_path=".")
+
+        if terms_embeddings_path is not None:
+            self.terms_embeddings = pd.read_csv(terms_embeddings_path)
+
+        if docs_embeddings_path is not None:
+            self.docs_embeddings = pd.read_csv(docs_embeddings_path)
+
+    def fit(
+        self,
+        extract_terms=True,
+        terms_embedding=True,
+        docs_embedding=True,
+        sample_size_terms=500,
+        terms_limit=500,
+        terms_ents=True,
+        terms_ngrams=(1, 2),
+        terms_ncs=True,
+        terms_include_pos=["NOUN", "PROPN", "ADJ"],
+        terms_include_types=["PERSON", "ORG"],
+        terms_embedding_model="distiluse-base-multilingual-cased-v1",
+        docs_embedding_model="tfidf",
+        language="en",
+    ):
+
+        if extract_terms:
+            self.terms = self.extract_terms(
+                sample_size=sample_size_terms,
+                limit=terms_limit,
+                ents=terms_ents,
+                ncs=terms_ncs,
+                ngrams=terms_ngrams,
+                include_pos=terms_include_pos,
+                include_types=terms_include_types,
+                language=language,
+            )
+
+        if terms_embedding:
+            self.terms_embeddings = self.terms_embeddings(
+                terms_embedding_model=terms_embedding_model
+            )
+
+        if docs_embedding:
+            self.docs_embeddings = self.docs_embeddings(
+                docs_embedding_model=docs_embedding_model
+            )
+
+        self.docs_embedding_model = docs_embedding_model
+        self.terms_embedding_model = terms_embedding_model
 
     def extract_terms(
         self,
@@ -60,10 +117,12 @@ class BasicSemantics:
 
         return terms
 
-    def terms_embeddings(self, embedding_model="distiluse-base-multilingual-cased-v1"):
+    def terms_embeddings(
+        self, terms_embedding_model="distiluse-base-multilingual-cased-v1"
+    ):
 
         # Embed the terms with sbert
-        model = SentenceTransformer(embedding_model)
+        model = SentenceTransformer(terms_embedding_model)
         docs = list(self.terms["main form"])
         terms_embeddings = model.encode(docs, show_progress_bar=True)
 
@@ -78,9 +137,11 @@ class BasicSemantics:
 
         return self.terms_embeddings
 
-    def embeddings(self, embedding_model="distiluse-base-multilingual-cased-v1"):
+    def docs_embeddings(
+        self, docs_embedding_model="distiluse-base-multilingual-cased-v1"
+    ):
 
-        if embedding_model == "tfidf":
+        if docs_embedding_model == "tfidf":
             model = TfidfVectorizer(max_features=20000)
             sentences = list(self.data[self.text_var])
             docs_embeddings = model.fit_transform(sentences)
@@ -88,7 +149,7 @@ class BasicSemantics:
 
         else:
             # Embed the docs with sbert
-            model = SentenceTransformer(embedding_model)
+            model = SentenceTransformer(docs_embedding_model)
             docs = list(self.data[self.text_var])
             docs_embeddings = model.encode(docs, show_progress_bar=True)
 
@@ -96,14 +157,18 @@ class BasicSemantics:
         df_embeddings = pd.DataFrame(docs_embeddings)
         df_embeddings.index = self.data[self.index_var]
 
-        self.embedding_model = embedding_model
+        self.docs_embedding_model = docs_embedding_model
         self.docs_embeddings = df_embeddings
 
         return self.docs_embeddings
 
     def index_terms(self, db_path=".", projection=False):
 
-        """Intex the terms on the text_var dataset"""
+        """
+
+        Index the terms on the text_var dataset
+
+        """
 
         # Get all the differents types of terms (not only the main form)
         df_terms = self.terms.copy()
@@ -134,7 +199,7 @@ class BasicSemantics:
             left_on=self.text_var,
             right_on="docs",
         )
-        df_enrich = df_enrich.drop("docs", axis=1)
-        self.df_indexed = df_enrich
+        self.df_indexed = df_enrich.drop(["docs", self.text_var], axis=1)
+        self.df_indexed = self.df_indexed.set_index(self.index_var)
 
         return self
