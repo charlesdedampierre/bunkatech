@@ -1,18 +1,14 @@
 import networkx as nx
-import plotly.graph_objects as go
 import numpy as np
-import community as community_louvain
 import pandas as pd
-from sklearn.metrics.pairwise import cosine_similarity
-from node2vec import Node2Vec
 import multiprocessing
+from collections import Counter
+import community as community_louvain
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
-import plotly
-import networkx as nx
+from node2vec import Node2Vec
 import plotly.graph_objects as go
-import pandas as pd
-from collections import Counter
 
 
 class SemanticNetwork:
@@ -20,6 +16,50 @@ class SemanticNetwork:
         self.data = data
         self.variables = variables
         self.key = key
+
+    def pipeline(
+        self,
+        top_n=100,
+        global_filter=0.2,
+        n_neighbours=6,
+        method="node2vec",
+        n_cluster=10,
+        bin_number=30,
+        black_hole_force=1.5,
+        color="community",
+        size="size",
+        symbol="entity",
+        textfont_size=9,
+        edge_size=1,
+        height=1000,
+        width=1000,
+        template="plotly_dark",
+    ):
+        self.coocurrence_multiple()
+        self.get_top_nodes(top_n=top_n)
+        self.weight_to_similarity(
+            global_filter=global_filter, n_neighbours=n_neighbours
+        )
+
+        self.compute_network(
+            density=black_hole_force,
+            bin_number=bin_number,
+            method=method,
+            n_cluster=n_cluster,
+        )
+
+        fig = self.draw_network(
+            color=color,
+            size=size,
+            symbol=symbol,
+            textfont_size=textfont_size,
+            edge_size=edge_size,
+            height_att=height,
+            width_att=width,
+            template=template,
+        )
+
+        return fig
 
     def coocurrence_multiple(self):
 
@@ -207,27 +247,6 @@ class SemanticNetwork:
             # Add a node for every community and connect it to all the other nodes
             # to create the 'Black Holes' gravity
 
-            """com = []
-            for node in G.nodes():
-                res = (node, G.nodes()[node]["community"])
-                com.append(res)
-
-            df_com = pd.DataFrame(com, columns=["node_name", "community"])
-
-            for community_number in set(df_com.community):
-                com = list(df_com[df_com.community == community_number].node_name)
-                G.add_node(
-                    f"network_center_{community_number}",
-                    centrality=len(com) * larger,
-                    community=community_number,
-                    size=len(com) * bin_number,
-                )
-
-                for node_com in com:
-                    G.add_edge(
-                        f"network_center_{community_number}", node_com, weight=density
-                    )"""
-
         elif method == "node2vec":
 
             node2vec = Node2Vec(G, dimensions=700, workers=multiprocessing.cpu_count())
@@ -293,18 +312,6 @@ class SemanticNetwork:
         ]
         clusters = dict(Counter(clusters))
 
-        """ for community_number, count_community in clusters.items():
-            line = pd.DataFrame(
-                {
-                    "data": [f"network_center_{community_number}"],
-                    "entity": ["centroid"],
-                    "size": [count_community],
-                },
-                index=[0],
-            )
-
-            nodes_attr = nodes_attr.append(line)"""
-
         # Add the entities and the size
         df_nodes = self.nodes_attr.set_index("data")
         df_nodes["entity"] = df_nodes["entity"].astype("category").cat.codes
@@ -320,6 +327,9 @@ class SemanticNetwork:
 
         self.df_node = pd.DataFrame.from_dict(
             dict(self.G.nodes(data=True)), orient="index"
+        )
+        self.df_node = pd.merge(
+            self.df_embeddings, self.df_node, left_index=True, right_index=True
         )
 
         # For each edge, make an edge_trace, append to list
@@ -342,14 +352,6 @@ class SemanticNetwork:
                 else:
                     # The bigger the node, the bigger the edge width
                     width = edge_size * self.G.edges()[edge]["weight"] ** 1.75
-
-                """# erase connections to center
-                if "network_center_" in char_1:
-                    width = 0
-                elif "network_center_" in char_2:
-                    width = 0
-                else:
-                    width = edge_size * G.edges()[edge]["weight"] ** 1.75"""
 
                 trace = go.Scatter(
                     x=[x0, x1, None],
@@ -388,12 +390,6 @@ class SemanticNetwork:
             else:
                 node_trace["marker"]["symbol"] += tuple([self.G.nodes()[node][symbol]])
 
-            """if "network_center_" in node:
-                pass
-                # node_trace["text"] += tuple()
-                # node_trace["marker"]["opacity"] += tuple([0.08])
-                # node_trace["marker"]["size"] += tuple([G.nodes()[node][size] * 10])
-            else:"""
             node_trace["text"] += tuple(["<b>" + node + "</b>"])
             node_trace["marker"]["opacity"] += tuple([0.6])
             node_trace["marker"]["size"] += tuple([self.G.nodes()[node][size]])
@@ -402,8 +398,6 @@ class SemanticNetwork:
         layout = go.Layout(
             height=height_att,
             width=width_att,
-            # paper_bgcolor='rgba(0,0,0,0)', # transparent background
-            # plot_bgcolor='rgba(0,0,0,0)', # transparent 2nd background
             xaxis={"showgrid": False, "zeroline": False},  # no gridlines
             yaxis={"showgrid": False, "zeroline": False},  # no gridlines
         )
