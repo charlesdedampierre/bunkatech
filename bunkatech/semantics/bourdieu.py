@@ -136,6 +136,7 @@ class Bourdieu(BasicSemantics):
         # Scale the results from -1 to 1
         scaler = MinMaxScaler(feature_range=(-1, 1))
         df_proj["term"] = df_proj.index
+
         df_proj[projection_str_1] = scaler.fit_transform(
             df_proj[projection_str_1].values.reshape(-1, 1)
         )
@@ -167,9 +168,9 @@ class Bourdieu(BasicSemantics):
                 }
             )
 
-            # Rescale
+            """# Rescale
             res[projection_str_1] = scaler.fit_transform(res[[projection_str_1]])
-            res[projection_str_2] = scaler.fit_transform(res[[projection_str_2]])
+            res[projection_str_2] = scaler.fit_transform(res[[projection_str_2]])"""
 
             final_proj = res.copy()
             name_var = self.text_var
@@ -254,6 +255,7 @@ class Bourdieu(BasicSemantics):
         width: int = 1000,
         type="terms",
         dispersion=True,
+        barometer=True,
     ):
         """
 
@@ -285,6 +287,7 @@ class Bourdieu(BasicSemantics):
         )
 
         if type == "documents":
+            # group by term and mean of the vectors
             # Merge with the original indexed data. The term is the key here
             fin = pd.merge(
                 df_proj[["term", projection_str_1]],
@@ -330,7 +333,7 @@ class Bourdieu(BasicSemantics):
             final_proj["project_angle"] = final_proj["project_angle"].apply(
                 lambda x: x
                 * random.uniform(
-                    0.1,
+                    0.001,
                     1,
                 )
             )
@@ -367,6 +370,20 @@ class Bourdieu(BasicSemantics):
         fig.add_trace(trace_scatter)
         fig.add_trace(trace_1)
         fig.add_trace(trace_2)
+
+        if barometer:
+            # Get the barometer Line
+            baro_mean = final_proj[projection_str_1].mean()
+            baro_mean_angle = np.sqrt(1 - baro_mean ** 2)
+            trace_barometer = go.Scatter(
+                x=[0.0, baro_mean, None],
+                y=[0.0, baro_mean_angle, None],
+                mode="lines",
+                line_width=3,
+                line_color="crimson",
+                name="barometer",
+            )
+            fig.add_trace(trace_barometer)
 
         fig.update_layout(
             title="Semantic Origami",

@@ -6,6 +6,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import PCA
 import plotly.express as px
 import warnings
+from ..basic_class import BasicSemantics
 
 pd.options.mode.chained_assignment = None
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -29,27 +30,93 @@ def wrap_by_word(string, n_words):
 # Better terms extract
 
 
-class PCATopic:
-    def __init__(self, data, text_var) -> None:
-
+class PCATopic(BasicSemantics):
+    def __init__(self, data, text_var, index_var) -> None:
+        BasicSemantics.__init__(self)
         self.data = data
         self.text_var = text_var
+        self.index_var = index_var
         self.data = self.data[self.data[self.text_var].notna()].reset_index(drop=True)
 
-    def fit(self):
-        pass
+    def fit(
+        self,
+        extract_terms=True,
+        docs_embedding=True,
+        terms_embedding=True,
+        sample_size_terms=500,
+        terms_limit=500,
+        terms_ents=True,
+        terms_ngrams=(1, 2),
+        terms_ncs=True,
+        terms_include_pos=["NOUN", "PROPN", "ADJ"],
+        terms_include_types=["PERSON", "ORG"],
+        terms_embedding_model="distiluse-base-multilingual-cased-v1",
+        docs_embedding_model="distiluse-base-multilingual-cased-v1",
+        language="en",
+    ):
+        BasicSemantics.fit(
+            self, data=self.data, text_var=self.text_var, index_var=self.index_var
+        )
+        if extract_terms:
+            BasicSemantics.extract_terms(
+                self,
+                sample_size=sample_size_terms,
+                limit=terms_limit,
+                ents=terms_ents,
+                ncs=terms_ncs,
+                ngrams=terms_ngrams,
+                include_pos=terms_include_pos,
+                include_types=terms_include_types,
+                language=language,
+            )
 
-    def pca_computation(self, n_components=4, language="english"):
+        if terms_embedding:
+            BasicSemantics.terms_embeddings(self, embedding_model=terms_embedding_model)
+
+        if docs_embedding:
+            BasicSemantics.embeddings(self, embedding_model=docs_embedding_model)
+
+    def pca_computation(self, n_components=4):
         """
         For every PCA axix, get the top and tail terms to describe them
         """
 
-        X = self.data[self.text_var].to_list()
+        # Get the cosine similarity between all embedded terms
+        df_emb = cosine_similarity(self.terms_embeddings)
+        df_emb = pd.DataFrame(df_emb)
+        df_emb.columns = self.terms_embeddings.index
+        df_emb.index = self.terms_embeddings.index
+
+        # Merge with index
+        df_emb = df_emb.reset_index()
+        df_emb = df_emb.rename(columns={"index": "main form"})
+
+        # Merge with the indexed terms. Documents that have no index terms get the mean of
+        # the dataset
+        res = pd.merge(
+            df_emb, self.df_indexed[[self.index_var, "main form"]], on="main form"
+        ).drop("main form", axis=1)
+
+        # merge with the original data to get the index that have no indexed terms.
+        # Fill the nan values with the mean of the dataset
+        # res = pd.merge(res, self.data[[self.index_var]], on=self.index_var, how="right")
+        # res = res.fillna(res.mean())
+
+        # every documents vector is the mean of its components' vectors
+        X = res.groupby(self.index_var).mean()
+
+        """
+        for col in X.columns:
+            X[col] = X[col].fillna(X[col].mean())
+        # X = X.fillna(X.mean())
+        self.X = X"""
+
+        """ X = self.data[self.text_var].to_list()
         model_tfidf = TfidfVectorizer(max_features=10000, stop_words=language)
         X_tfidf = model_tfidf.fit_transform(X)
 
         X = np.array(X_tfidf.todense())
-        X = X - X.mean(axis=0)
+        X = X - X.mean(axis=0)"""
 
         # recompute this part
 
@@ -57,11 +124,14 @@ class PCATopic:
         self.pca = PCA(n_components=n_components)
         self.pca.fit(X)
         X_pca = self.pca.transform(X)
-        variables_names = model_tfidf.get_feature_names()
+        # variables_names = model_tfidf.get_feature_names()
+        variables_names = self.terms_embeddings.index
         pca_columns = [f"pca_{x}" for x in range(self.pca.n_components_)]
 
         # concat the X_pca and the X_terms
         self.df_X_pca = pd.DataFrame(X_pca, columns=pca_columns)
+        self.df_X_pca.index = X.index
+
         self.df_X = pd.DataFrame(X, columns=variables_names)
         self.full_concat = pd.concat([self.df_X_pca, self.df_X], axis=1)
 
@@ -124,18 +194,15 @@ class PCATopic:
 
         # Get the explained variance
         pca_var = pd.DataFrame(
-            self.pca.explained_variance_, columns=["explained_variance"]
+            self.pca.explained_variance_ratio_, columns=["explained_variance_ratio"]
         )
         pca_var["dimensions"] = [f"pca_{x}" for x in range(self.pca.n_components_)]
         fin_cos = pd.merge(fin_cos, pca_var, on="dimensions")
 
         return fin_cos
 
-    def get_topics(self, n_components=4, head_tail_number=5, language="english"):
-        self.pca_computation(
-            n_components=n_components,
-            language=language,
-        )
+    def get_topics(self, n_components=4, head_tail_number=5):
+        self.pca_computation(n_components=n_components)
         self.pca_topics = self.get_top_terms_pca(head_tail_number=head_tail_number)
 
         return self.pca_topics
@@ -143,8 +210,9 @@ class PCATopic:
     def visualize(self, dim_1, dim_2, width=1000, height=1000):
         # visualize the embeddings
 
-        res = self.df_X_pca[[dim_1, dim_2]]
-        res[self.text_var] = self.data[self.text_var]
+        res = self.df_X_pca[[dim_1, dim_2]].reset_index()
+        res = pd.merge(res, self.data, on=self.index_var)
+        # res[self.text_var] = self.data[self.text_var].tolist()
         res[self.text_var] = res[self.text_var].apply(lambda x: wrap_by_word(x, 10))
 
         fig = px.scatter(
