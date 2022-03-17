@@ -1,7 +1,7 @@
 import pandas as pd
 from bunkatech.semantics.origami import Origami
 from bunkatech.topic_modeling.nested_topics import NestedTopicModeling
-from bunkatech.networks.network_class import SemanticNetwork
+from bunkatech.networks.networks_class import SemanticNetwork
 
 
 import streamlit as st
