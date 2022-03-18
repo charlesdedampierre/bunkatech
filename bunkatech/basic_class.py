@@ -70,12 +70,12 @@ class BasicSemantics:
             )
 
         if terms_embedding:
-            self.terms_embeddings = self.terms_embeddings(
+            self.terms_embeddings = self.terms_embeddings_function(
                 terms_embedding_model=terms_embedding_model
             )
 
         if docs_embedding:
-            self.docs_embeddings = self.docs_embeddings(
+            self.docs_embeddings = self.docs_embeddings_function(
                 docs_embedding_model=docs_embedding_model
             )
 
@@ -117,7 +117,7 @@ class BasicSemantics:
 
         return terms
 
-    def terms_embeddings(
+    def terms_embeddings_function(
         self, terms_embedding_model="distiluse-base-multilingual-cased-v1"
     ):
 
@@ -137,12 +137,12 @@ class BasicSemantics:
 
         return self.terms_embeddings
 
-    def docs_embeddings(
+    def docs_embeddings_function(
         self, docs_embedding_model="distiluse-base-multilingual-cased-v1"
     ):
 
         if docs_embedding_model == "tfidf":
-            model = TfidfVectorizer(max_features=20000)
+            model = TfidfVectorizer(max_features=3000)
             sentences = list(self.data[self.text_var])
             docs_embeddings = model.fit_transform(sentences)
             docs_embeddings = docs_embeddings.todense()
@@ -163,6 +163,8 @@ class BasicSemantics:
         return self.docs_embeddings
 
     def index_terms(self, db_path=".", projection=False):
+
+        # Projection is used when one add new words to the terms
 
         """
 

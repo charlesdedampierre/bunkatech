@@ -1,10 +1,10 @@
 import pandas as pd
-from bunkatech.semantics.origami import Origami
-from bunkatech.topic_modeling.nested_topics import NestedTopicModeling
-from bunkatech.networks.networks_class import SemanticNetwork
-
-
+from bunkatech.bunka_class import Bunka
 import streamlit as st
+import toml
+
+instructions = toml.load("instructions.toml")
+
 
 pd.options.mode.chained_assignment = None
 
@@ -15,81 +15,37 @@ st.set_page_config(
     page_title="Bunka",
 )
 
-"""
-information about caching in streamlit:
-
-- 'allow_output_mutation' makes it possible for the class to 
-change its variable or methods.
-
-- In order to cache the data,
-the function needs to have the exact same input.If the data is sampled, then the function
-reruns completely...
-
-"""
+st.write(instructions["app"]["app_intro"])
 
 
 @st.cache(allow_output_mutation=True)
-def origami_fit(data):
-    origami = Origami(data=data, text_var="description", index_var="imdb")
-
-    origami.fit(
+def bunka_fit(data):
+    bunka = Bunka(
+        data=data,
+        text_var="description",
+        index_var="imdb",
         extract_terms=True,
-        docs_embedding=False,
         terms_embedding=True,
-        sample_size_terms=100,
-        terms_limit=100,
-        terms_ents=False,
-        terms_ngrams=(2, 2),
-        terms_ncs=False,
-        language="en",
-        terms_embedding_model="/Volumes/OutFriend/sbert_model/distiluse-base-multilingual-cased-v1",
-    )
-    return origami
-
-
-@st.cache(allow_output_mutation=True)
-def network_fit(data):
-    net = SemanticNetwork(data, text_var="description", index_var="imdb")
-    net.fit(
-        extract_terms=True,
-        docs_embedding=False,
-        terms_embedding=False,
+        docs_embedding=True,
         sample_size_terms=2000,
-        terms_limit=1000,
-        terms_ents=False,
-        terms_ngrams=(2, 2),
+        terms_limit=2000,
+        terms_ents=True,
+        terms_ngrams=(1, 2),
         terms_ncs=True,
         terms_include_pos=["NOUN", "PROPN", "ADJ"],
         terms_include_types=["PERSON", "ORG"],
         terms_embedding_model="distiluse-base-multilingual-cased-v1",
-        docs_embedding_model="distiluse-base-multilingual-cased-v1",
-        language="en",
-    )
-    return net
-
-
-@st.cache(allow_output_mutation=True)
-def bunka_nested_fit(data):
-    nested = NestedTopicModeling(data=data, text_var="description", index_var="imdb")
-    nested.fit(
-        folding=None,
         docs_embedding_model="tfidf",
-        extract_terms=True,
-        terms_embedding=False,
-        sample_size_terms=3000,
-        terms_limit=3000,
-        terms_ents=False,
-        terms_ngrams=(2, 2),
-        terms_ncs=False,
-        terms_include_pos=["NOUN", "PROPN", "ADJ"],
-        terms_include_types=["PERSON", "ORG"],
-        terms_embedding_model="distiluse-base-multilingual-cased-v1",
         language="en",
+        terms_path=None,
+        terms_embeddings_path=None,
+        docs_embeddings_path=None,
     )
-    return nested
+    bunka.fit(date_var="year", folding=None, popularity_var="avg_vote")
+    return bunka
 
 
-st.title("Bunka")
+st.sidebar.title("Bunka")
 
 data = pd.read_csv(
     "/Users/charlesdedampierre/Desktop/ENS Projects/imaginary-world/db_film_iw (2).csv",
@@ -97,41 +53,47 @@ data = pd.read_csv(
 )
 
 data = data.sample(1000, random_state=42)
-
-if st.checkbox("Origami Semantics"):
-    origami = origami_fit(data)
+bunka = bunka_fit(data)
+if st.sidebar.checkbox("Semantic Origamis"):
+    st.title("Semantic Origamis")
     search = st.text_input(label="", placeholder="Enter the left end of the axis")
+    projection_item = st.selectbox(
+        label="Chose what item to display", options=["terms", "documents"], index=1
+    )
 
     if search:
         # Create a way to enter different words
-        fig = origami.origami_projection_unique(
+        fig = bunka.origami_projection_unique(
             projection_1=search.split(","),
-            type="documents",
             height=500,
             width=1000,
+            type=projection_item,
             dispersion=True,
             barometer=True,
         )
 
         st.plotly_chart(fig)
 
-if st.checkbox("Holistic Semantics"):
-
-    nested = bunka_nested_fit(data)
-    map_type = st.text_input(
-        label="treemap", placeholder="enter 'Treemap' or 'Sunburst'"
+if st.sidebar.checkbox("Semantic Nestedness"):
+    st.title("Semantic Nestedness")
+    map_type = st.selectbox(
+        label="Chose the Mapping Type",
+        options=["treemap", "sunburst", "sankey"],
+        index=0,
     )
 
-    query_input = st.text_input(label="", placeholder="Write a Query")
+    query_input = st.text_input(
+        label="Explore the map by searching for terms", placeholder="Write a Query"
+    )
 
     if query_input:
-        query = [query_input]
+        query = query_input.split(",")
     else:
         query = None
 
     if map_type:
-        fig = nested.nested_maps(
-            size_rule="docs_size",
+        fig = bunka.nested_maps(
+            size_rule="equal_size",
             map_type=map_type,
             width=1000,
             height=1000,
@@ -141,25 +103,44 @@ if st.checkbox("Holistic Semantics"):
         st.plotly_chart(fig)
 
 
-if st.checkbox("Network Semantics"):
-    net = network_fit(data)
-    fig = net.pipeline(
-        top_n=500,
-        variables=["main form"],
-        global_filter=0.2,
-        n_neighbours=8,
-        method="force_directed",
-        n_cluster=15,
-        bin_number=30,
-        black_hole_force=5,
-        color="community",
-        size="size",
-        symbol="entity",
-        textfont_size=9,
-        edge_size=0.5,
-        height=1000,
-        width=1000,
-        template="plotly_dark",
-    )
+if st.sidebar.checkbox("Semantic Networks"):
+    st.title("Semantic Networks")
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        top_n = st.number_input(label="Top nodes", value=50)
+        top_n = int(top_n)
+        black_hole_force = st.number_input(label="Black Hole Force", value=1)
+        n_cluster = st.number_input(label="Cluster Number", value=10)
 
-    st.plotly_chart(fig)
+    with col2:
+        fig = bunka.fit_draw(
+            variables=["main form"],
+            top_n=top_n,
+            global_filter=0.2,
+            n_neighbours=6,
+            method="force_directed",
+            n_cluster=n_cluster,
+            bin_number=30,
+            black_hole_force=black_hole_force,
+            color="community",
+            size="size",
+            symbol="entity",
+            textfont_size=9,
+            edge_size=1,
+            height=1000,
+            width=1000,
+            template="plotly_dark",
+        )
+
+        st.plotly_chart(fig)
+
+
+if st.sidebar.checkbox("Top Documents"):
+    st.subheader("Top Documents")
+    top_docs = bunka.get_top_popular_docs(top_n=10)
+    docs = top_docs[bunka.text_var]
+    popularity = top_docs[bunka.popularity_var]
+    for doc, pop in zip(docs, popularity):
+        st.info(doc)
+        st.success("popularity score: " + str(pop))
+        st.text("")

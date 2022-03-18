@@ -129,7 +129,7 @@ class TopicModeling(BasicSemantics):
 
         return self.topics
 
-    def visualize_embeddings(self, width: int = 1000, height: int = 1000):
+    def visualize_topics_embeddings(self, width: int = 1000, height: int = 1000):
 
         """
         Visualize the embeddings in 2D.
@@ -144,10 +144,10 @@ class TopicModeling(BasicSemantics):
         )
         res = pd.merge(res.drop("cluster", axis=1), self.data, on=self.index_var)
 
-        if not hasattr(self, "embeddings_2d"):
-            self.embeddings_2d = umap.UMAP(n_components=2).fit_transform(
-                res[[0, 1, 2, 3, 4]]
-            )
+        # if not hasattr(self, "embeddings_2d"):
+        self.embeddings_2d = umap.UMAP(n_components=2, verbose=True).fit_transform(
+            res[[0, 1, 2, 3, 4]]
+        )
 
         res["dim_1"] = self.embeddings_2d[:, 0]
         res["dim_2"] = self.embeddings_2d[:, 1]

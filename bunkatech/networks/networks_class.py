@@ -82,7 +82,7 @@ class SemanticNetworks(BasicSemantics):
         width=1000,
         template="plotly_dark",
     ):
-        self.data = pd.merge(
+        self.data_network = pd.merge(
             self.data, self.df_indexed.reset_index(), on=self.index_var
         )
 
@@ -117,7 +117,7 @@ class SemanticNetworks(BasicSemantics):
 
         fin = pd.DataFrame()
         for var in self.variables:
-            df_var = self.data[[self.index_var, var]]
+            df_var = self.data_network[[self.index_var, var]]
             df_var = df_var.drop_duplicates()
             df_var = (
                 df_var.groupby([self.index_var, var])[self.index_var]

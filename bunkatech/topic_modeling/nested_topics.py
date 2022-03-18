@@ -126,6 +126,7 @@ class NestedTopicModeling(BasicSemantics):
         height=1000,
         query=None,
     ):
+
         """Create Maps to display information
 
         Parameters
@@ -151,7 +152,7 @@ class NestedTopicModeling(BasicSemantics):
         ValueError
             _description_
         """
-
+        self.nested_frame()
         # Create the clusters and the names
 
         if query is not None:
@@ -221,7 +222,7 @@ class NestedTopicModeling(BasicSemantics):
 
         return map
 
-    def visualize_embeddings(
+    def visualize_2D_embeddings(
         self, nested_level: int = 0, width: int = 1000, height: int = 1000
     ):
 

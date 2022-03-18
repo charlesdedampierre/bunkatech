@@ -1,0 +1,13 @@
+[app]
+app_intro = """
+This app allows you to visualize & search data in a geometric way
+* Networks
+* Maps 
+* Origami of information
+"""
+
+[module_description]
+networks = """
+Check to launch forecast. A new forecast will be made each time some parameter is changed in the sidebar.
+"""
+
