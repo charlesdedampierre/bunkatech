@@ -7,7 +7,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import LinearRegression
 from ..basic_class import BasicSemantics
-
+from sentence_transformers import SentenceTransformer
 
 pd.options.mode.chained_assignment = None
 
@@ -94,9 +94,8 @@ class Origami(BasicSemantics):
         self.index_terms(projection=True)
 
         # Encode the results
-        projection_embeddings = self.terms_embeddings_model.encode(
-            projection_all, show_progress_bar=True
-        )
+        model = SentenceTransformer(self.terms_embedding_model)
+        projection_embeddings = model.encode(projection_all, show_progress_bar=True)
 
         full_terms_embeddings = np.concatenate(
             [self.terms_embeddings, projection_embeddings]
@@ -299,6 +298,8 @@ class Origami(BasicSemantics):
             df_proj["project_angle"].values.reshape(-1, 1)
         )
 
+        self.df_proj = df_proj
+
         if type == "documents":
             # group by term and mean of the vectors
             # Merge with the original indexed data. The term is the key here
@@ -308,6 +309,7 @@ class Origami(BasicSemantics):
                 left_on="term",
                 right_on="main form",
             )
+
             # Compute the mean for every id: every id is the mean of all the texts it contains
             res = (
                 fin.groupby([self.index_var])

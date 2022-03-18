@@ -89,15 +89,6 @@ class NestedTopicModeling(BasicSemantics):
             self.docs_embeddings = pd.DataFrame(embeddings_folding)
             self.docs_embeddings.index = self.data[self.index_var]
 
-        else:
-            # reduce embeddings
-            reduction_model = umap.UMAP(
-                n_components=5, n_neighbors=10, metric="cosine", verbose=True
-            )
-            reduction_embeddings = reduction_model.fit_transform(self.docs_embeddings)
-            self.docs_embeddings = pd.DataFrame(reduction_embeddings)
-            self.docs_embeddings.index = self.data[self.index_var]
-
         #  Get the  specific computation
         self.nested_frame()
 

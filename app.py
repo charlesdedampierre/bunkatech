@@ -5,7 +5,6 @@ import toml
 
 instructions = toml.load("instructions.toml")
 
-
 pd.options.mode.chained_assignment = None
 
 st.set_page_config(
@@ -14,8 +13,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
     page_title="Bunka",
 )
-
-st.write(instructions["app"]["app_intro"])
 
 
 @st.cache(allow_output_mutation=True)
@@ -52,58 +49,78 @@ data = pd.read_csv(
     index_col=[0],
 )
 
+
 data = data.sample(1000, random_state=42)
 bunka = bunka_fit(data)
-if st.sidebar.checkbox("Semantic Origamis"):
+
+
+module_choice = st.sidebar.selectbox(
+    label="Chose a Module",
+    options=[
+        "Semantic Origamis",
+        "Semantic Nestedness",
+        "Semantic Networks",
+        "Top Documents",
+    ],
+    index=1,
+)
+
+if module_choice == "Semantic Origamis":
     st.title("Semantic Origamis")
-    search = st.text_input(label="", placeholder="Enter the left end of the axis")
-    projection_item = st.selectbox(
-        label="Chose what item to display", options=["terms", "documents"], index=1
-    )
-
-    if search:
-        # Create a way to enter different words
-        fig = bunka.origami_projection_unique(
-            projection_1=search.split(","),
-            height=500,
-            width=1000,
-            type=projection_item,
-            dispersion=True,
-            barometer=True,
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        search = st.text_input(label="Enter a dimention", value="critique, promesse")
+        projection_item = st.selectbox(
+            label="Chose what item to display", options=["terms", "documents"], index=1
         )
+    with col2:
+        if search:
+            # Create a way to enter different words
+            fig = bunka.origami_projection_unique(
+                projection_1=search.split(","),
+                height=500,
+                width=1000,
+                type=projection_item,
+                dispersion=True,
+                barometer=True,
+            )
 
-        st.plotly_chart(fig)
+            st.plotly_chart(fig)
 
-if st.sidebar.checkbox("Semantic Nestedness"):
+if module_choice == "Semantic Nestedness":
     st.title("Semantic Nestedness")
-    map_type = st.selectbox(
-        label="Chose the Mapping Type",
-        options=["treemap", "sunburst", "sankey"],
-        index=0,
-    )
-
-    query_input = st.text_input(
-        label="Explore the map by searching for terms", placeholder="Write a Query"
-    )
-
-    if query_input:
-        query = query_input.split(",")
-    else:
-        query = None
-
-    if map_type:
-        fig = bunka.nested_maps(
-            size_rule="equal_size",
-            map_type=map_type,
-            width=1000,
-            height=1000,
-            query=query,
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        map_type = st.selectbox(
+            label="Chose the Mapping Type",
+            options=["treemap", "sunburst", "sankey"],
+            index=0,
         )
 
-        st.plotly_chart(fig)
+        query_input = st.text_input(
+            label="Explore the map by searching for terms",
+            placeholder="Write a Query",
+        )
+
+        if query_input:
+            query = query_input.split(",")
+        else:
+            query = None
+
+    with col2:
+        if map_type:
+            fig = bunka.nested_maps(
+                size_rule="equal_size",
+                map_type=map_type,
+                width=1000,
+                height=1000,
+                query=query,
+            )
+
+            st.plotly_chart(fig)
 
 
-if st.sidebar.checkbox("Semantic Networks"):
+if module_choice == "Semantic Networks":
     st.title("Semantic Networks")
     col1, col2 = st.columns([1, 3])
     with col1:
@@ -135,7 +152,7 @@ if st.sidebar.checkbox("Semantic Networks"):
         st.plotly_chart(fig)
 
 
-if st.sidebar.checkbox("Top Documents"):
+if module_choice == "Top Documents":
     st.subheader("Top Documents")
     top_docs = bunka.get_top_popular_docs(top_n=10)
     docs = top_docs[bunka.text_var]

@@ -3,6 +3,7 @@ from .semantics.extract_terms import extract_terms_df
 from .semantics.indexer import indexer
 from sentence_transformers import SentenceTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
+import umap
 
 
 class BasicSemantics:
@@ -29,16 +30,20 @@ class BasicSemantics:
         self.text_var = text_var
         self.index_var = index_var
 
+        self.terms_path = terms_path
+        self.terms_embeddings_path = terms_embeddings_path
+        self.docs_embeddings_path = docs_embeddings_path
+
         # Load existing dataset if they exist
         if terms_path is not None:
-            self.terms = pd.read_csv(terms_path)
+            self.terms = pd.read_csv(terms_path, index_col=[0])
             self.index_terms(projection=False, db_path=".")
 
         if terms_embeddings_path is not None:
-            self.terms_embeddings = pd.read_csv(terms_embeddings_path)
+            self.terms_embeddings = pd.read_csv(terms_embeddings_path, index_col=[0])
 
         if docs_embeddings_path is not None:
-            self.docs_embeddings = pd.read_csv(docs_embeddings_path)
+            self.docs_embeddings = pd.read_csv(docs_embeddings_path, index_col=[0])
 
     def fit(
         self,
@@ -54,8 +59,16 @@ class BasicSemantics:
         terms_include_types=["PERSON", "ORG"],
         terms_embedding_model="distiluse-base-multilingual-cased-v1",
         docs_embedding_model="tfidf",
+        docs_dimension_reduction=None,
         language="en",
     ):
+
+        if self.terms_embeddings_path is not None:
+            terms_embedding = False
+        if self.docs_embeddings_path is not None:
+            docs_embedding = False
+        if self.terms_path is not None:
+            extract_terms = False
 
         if extract_terms:
             self.terms = self.extract_terms(
@@ -76,7 +89,8 @@ class BasicSemantics:
 
         if docs_embedding:
             self.docs_embeddings = self.docs_embeddings_function(
-                docs_embedding_model=docs_embedding_model
+                docs_embedding_model=docs_embedding_model,
+                dimension_reduction=docs_dimension_reduction,
             )
 
         self.docs_embedding_model = docs_embedding_model
@@ -138,7 +152,9 @@ class BasicSemantics:
         return self.terms_embeddings
 
     def docs_embeddings_function(
-        self, docs_embedding_model="distiluse-base-multilingual-cased-v1"
+        self,
+        docs_embedding_model="distiluse-base-multilingual-cased-v1",
+        dimension_reduction=None,
     ):
 
         if docs_embedding_model == "tfidf":
@@ -153,7 +169,12 @@ class BasicSemantics:
             docs = list(self.data[self.text_var])
             docs_embeddings = model.encode(docs, show_progress_bar=True)
 
-            # Create the Dataframe
+        if dimension_reduction is not None:
+            docs_embeddings = umap.UMAP(
+                n_components=dimension_reduction, verbose=True
+            ).fit_transform(docs_embeddings)
+
+        # Create the Dataframe
         df_embeddings = pd.DataFrame(docs_embeddings)
         df_embeddings.index = self.data[self.index_var]
 

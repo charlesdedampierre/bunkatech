@@ -57,8 +57,10 @@ class Bunka(
 
     def fit(self, date_var, popularity_var=None, folding=None):
         NestedTopicModeling.fit(self, folding=folding)
-        SemanticsTrends.fit(self, date_var=date_var)
-        self.popularity_var = popularity_var
+        if date_var is not None:
+            SemanticsTrends.fit(self, date_var=date_var)
+        if popularity_var is not None:
+            self.popularity_var = popularity_var
 
     # Bunka manages the change of variables and especially the nestedness
     def change_variables(

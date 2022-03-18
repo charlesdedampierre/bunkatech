@@ -15,12 +15,22 @@ def hierarchical_clusters(df: pd.DataFrame) -> pd.DataFrame:
         (pd.DataFrame):  with three columns (level_0, level_1, level_2) for every layer
     """
     # level 0
-    emb_col = list(np.arange(0, 5))
-    level_0 = (
-        KMeans(n_clusters=8, random_state=0).fit(df[emb_col]).labels_
-    )  # first layer
-    df["level_0"] = level_0
-    df = df.sort_values("level_0")
+
+    try:
+        emb_col = list(np.arange(0, 5))
+        level_0 = (
+            KMeans(n_clusters=8, random_state=0).fit(df[emb_col]).labels_
+        )  # first layer
+        df["level_0"] = level_0
+        df = df.sort_values("level_0")
+    except:
+        emb_col = list(np.arange(0, 5))
+        emb_col = [str(x) for x in emb_col]
+        level_0 = (
+            KMeans(n_clusters=8, random_state=0).fit(df[emb_col]).labels_
+        )  # first layer
+        df["level_0"] = level_0
+        df = df.sort_values("level_0")
 
     # level 1
     levels_1 = []

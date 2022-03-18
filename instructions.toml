@@ -8,6 +8,6 @@ This app allows you to visualize & search data in a geometric way
 
 [module_description]
 networks = """
-Check to launch forecast. A new forecast will be made each time some parameter is changed in the sidebar.
+Check to launch forecast. \n
+Networks makes it able to..
 """
-
