@@ -110,6 +110,18 @@ def topics_nested(
             height=height,
         )
 
+    elif map_type == "icicle":
+        fig = px.icicle(
+            nested_topics,
+            path=path,
+            values="topic_size",
+            color=color,
+            color_continuous_scale="Picnic",
+            color_continuous_midpoint=color_continuous_midpoint,
+            width=width,
+            height=height,
+        )
+
     fig.update_traces(root_color="lightgrey")
 
     fig.data[

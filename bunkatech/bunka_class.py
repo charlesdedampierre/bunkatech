@@ -18,11 +18,11 @@ class Bunka(
         extract_terms=True,
         terms_embedding=False,
         docs_embedding=False,
-        sample_size_terms=500,
-        terms_limit=500,
-        terms_ents=True,
-        terms_ngrams=(1, 2),
-        terms_ncs=True,
+        sample_size_terms=1000,
+        terms_limit=2000,
+        terms_ents=False,
+        terms_ngrams=(2, 2),
+        terms_ncs=False,
         terms_include_pos=["NOUN", "PROPN", "ADJ"],
         terms_include_types=["PERSON", "ORG"],
         terms_embedding_model="distiluse-base-multilingual-cased-v1",
@@ -31,6 +31,7 @@ class Bunka(
         terms_path=None,
         terms_embeddings_path=None,
         docs_embeddings_path=None,
+        docs_dimension_reduction=5,
     ):
 
         super().__init__(
@@ -53,7 +54,19 @@ class Bunka(
             terms_path=terms_path,
             terms_embeddings_path=terms_embeddings_path,
             docs_embeddings_path=docs_embeddings_path,
+            docs_dimension_reduction=docs_dimension_reduction,
         )
+
+        # for the nestedness
+        self.data_initial = self.data.copy()
+        try:
+            self.df_indexed_initial = self.df_indexed.copy()
+        except:
+            pass
+        try:
+            self.docs_embeddings_initial = self.docs_embeddings.copy()
+        except:
+            pass
 
     def fit(self, date_var, popularity_var=None, folding=None):
         NestedTopicModeling.fit(self, folding=folding)
@@ -87,87 +100,109 @@ class Bunka(
         self.top_docs = top_docs.set_index(self.index_var)
         return self.top_docs
 
-    """def filter_nested_cluster(self, lv_0=None, lv_1=None, lv_2=None):
+    def filter_nested_cluster(self, lv_0=None, lv_1=None, lv_2=None):
 
+        # When there are no filters
         if lv_0 == None and lv_1 == None and lv_2 == None:
-            data_filtered = self.h_clusters_names.copy()
+            self.data_filtered = self.h_clusters_names_initial.copy()
 
-        elif lv_1 == None and lv_2 == None:
+        # When there is only the first level filter
+        elif lv_0 is not None and lv_1 == None and lv_2 == None:
             mask = self.h_clusters_names["lemma_0"] == lv_0
-            data_filtered = self.h_clusters_names[mask]
+            self.data_filtered = self.h_clusters_names_initial[mask].copy()
 
-        elif lv_2 == None:
+        # When there is the first & the second filter
+        elif lv_0 is not None and lv_1 is not None and lv_2 == None:
             mask = self.h_clusters_names["lemma_1"] == lv_1
-            data_filtered = self.h_clusters_names[mask]
+            self.data_filtered = self.h_clusters_names_initial[mask].copy()
 
-        else:
+        # When they all have a value
+        elif lv_0 is not None and lv_1 is not None and lv_2 is not None:
             mask = self.h_clusters_names["lemma_2"] == lv_2
-            data_filtered = self.h_clusters_names[mask]
+            self.data_filtered = self.h_clusters_names_initial[mask].copy()
+
+        # The end goal is to filter the dataframe that will be used in the whole class
+        # Hence we must use the initial dataset to re-initialize the filters
 
         self.data = pd.merge(
-            data_filtered[[self.index_var]], self.data, on=self.index_var
+            self.data_filtered[[self.index_var]], self.data_initial, on=self.index_var
         )
 
-        return self.data
-
-    def cluster_selection(df_clusters_name):
-
-        level_0_list = list(set(df_clusters_name["lemma_0"].to_list())) + ["None"]
-
-        default_ix = level_0_list.index("None")
-        lv_0 = st.sidebar.selectbox(
-            "Chose the Level 1", options=level_0_list, index=default_ix
+        self.docs_embeddings = pd.merge(
+            self.data_filtered[[self.index_var]],
+            self.docs_embeddings_initial.reset_index(),
+            on=self.index_var,
         )
 
-        # If None, then impossible to chose sub-topic
-        if lv_0 == "None":
-            level_1_list = ["None"]
-        else:
-            mask_1 = df_clusters_name["lemma_0"] == lv_0
-            level_1_list = list(set(df_clusters_name[mask_1]["lemma_1"].to_list())) + [
-                "None"
-            ]
-
-        default_ix = level_1_list.index("None")
-        lv_1 = st.sidebar.selectbox(
-            "Chose the Level 2", options=level_1_list, index=default_ix
+        self.df_indexed = pd.merge(
+            self.data_filtered[[self.index_var]],
+            self.df_indexed_initial.reset_index(),
+            on=self.index_var,
         )
 
-        # If None, then impossible to chose sub-topic in the selectbox
-        if lv_1 == "None" or lv_0 == "None":
-            level_2_list = ["None"]
-        else:
-            mask_2 = df_clusters_name["lemma_1"] == lv_1
-            level_2_list = list(set(df_clusters_name[mask_2]["lemma_2"].to_list())) + [
-                "None"
-            ]
+        self.docs_embeddings = self.docs_embeddings.set_index(self.index_var)
+        self.df_indexed = self.df_indexed.set_index(self.index_var)
 
-        default_ix = level_2_list.index("None")
-        lv_2 = st.sidebar.selectbox(
-            "Chose the Level 3", options=level_2_list, index=default_ix
-        )
+        """
+        
+        def cluster_selection(df_clusters_name):
 
-        # Data Selection based on choice
+            level_0_list = list(set(df_clusters_name["lemma_0"].to_list())) + ["None"]
 
-        if lv_0 == "None" and lv_1 == "None" and lv_2 == "None":
-            data_filtered = df_clusters_name.copy()
+            default_ix = level_0_list.index("None")
+            lv_0 = st.sidebar.selectbox(
+                "Chose the Level 1", options=level_0_list, index=default_ix
+            )
 
-        elif lv_1 == "None" and lv_2 == "None":
-            mask = df_clusters_name["lemma_0"] == lv_0
-            data_filtered = df_clusters_name[mask]
+            # If None, then impossible to chose sub-topic
+            if lv_0 == "None":
+                level_1_list = ["None"]
+            else:
+                mask_1 = df_clusters_name["lemma_0"] == lv_0
+                level_1_list = list(set(df_clusters_name[mask_1]["lemma_1"].to_list())) + [
+                    "None"
+                ]
 
-        elif lv_2 == "None":
-            mask = df_clusters_name["lemma_1"] == lv_1
-            data_filtered = df_clusters_name[mask]
+            default_ix = level_1_list.index("None")
+            lv_1 = st.sidebar.selectbox(
+                "Chose the Level 2", options=level_1_list, index=default_ix
+            )
 
-        else:
-            mask = df_clusters_name["lemma_2"] == lv_2
-            data_filtered = df_clusters_name[mask]
+            # If None, then impossible to chose sub-topic in the selectbox
+            if lv_1 == "None" or lv_0 == "None":
+                level_2_list = ["None"]
+            else:
+                mask_2 = df_clusters_name["lemma_1"] == lv_1
+                level_2_list = list(set(df_clusters_name[mask_2]["lemma_2"].to_list())) + [
+                    "None"
+                ]
 
-        return data_filtered, lv_0, lv_1, lv_2
+            default_ix = level_2_list.index("None")
+            lv_2 = st.sidebar.selectbox(
+                "Chose the Level 3", options=level_2_list, index=default_ix
+            )
 
-        data_filtered = cluster_selection(df_clusters_name)
-            st.dataframe(data_filtered)
-            st.write(len(data_filtered))
+            # Data Selection based on choice
 
-    """
+            if lv_0 == "None" and lv_1 == "None" and lv_2 == "None":
+                data_filtered = df_clusters_name.copy()
+
+            elif lv_1 == "None" and lv_2 == "None":
+                mask = df_clusters_name["lemma_0"] == lv_0
+                data_filtered = df_clusters_name[mask]
+
+            elif lv_2 == "None":
+                mask = df_clusters_name["lemma_1"] == lv_1
+                data_filtered = df_clusters_name[mask]
+
+            else:
+                mask = df_clusters_name["lemma_2"] == lv_2
+                data_filtered = df_clusters_name[mask]
+
+            return data_filtered, lv_0, lv_1, lv_2
+
+            data_filtered = cluster_selection(df_clusters_name)
+                st.dataframe(data_filtered)
+                st.write(len(data_filtered))
+
+        """

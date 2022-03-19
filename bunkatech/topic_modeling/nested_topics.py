@@ -43,6 +43,7 @@ class NestedTopicModeling(BasicSemantics):
         terms_path=None,
         terms_embeddings_path=None,
         docs_embeddings_path=None,
+        docs_dimension_reduction=5,
     ) -> None:
 
         BasicSemantics.__init__(
@@ -70,6 +71,7 @@ class NestedTopicModeling(BasicSemantics):
             terms_embedding_model=terms_embedding_model,
             docs_embedding_model=docs_embedding_model,
             language=language,
+            docs_dimension_reduction=docs_dimension_reduction,
         )
 
     def fit(self, folding=None):
@@ -106,6 +108,7 @@ class NestedTopicModeling(BasicSemantics):
         self.h_clusters_names = self.h_clusters_names.drop_duplicates().reset_index(
             drop=True
         )
+        self.h_clusters_names_initial = self.h_clusters_names.copy()
 
         return self.h_clusters_names
 
@@ -194,6 +197,18 @@ class NestedTopicModeling(BasicSemantics):
                 height=height,
                 count_search=count_search,
                 map_type="sunburst",
+            )
+
+        elif map_type == "icicle":
+            # Make sunburst
+            map = topics_nested(
+                nested_topics=self.h_clusters_names,
+                index_var=self.index_var,
+                size_rule=size_rule,
+                width=width,
+                height=height,
+                count_search=count_search,
+                map_type="icicle",
             )
 
         elif map_type == "sankey":

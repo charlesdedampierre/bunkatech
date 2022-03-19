@@ -40,7 +40,7 @@ class Origami(BasicSemantics):
         sample_size_terms=500,
         terms_limit=500,
         terms_ents=True,
-        terms_ngrams=(1, 2),
+        terms_ngrams=(2, 2),
         terms_ncs=True,
         terms_include_pos=["NOUN", "PROPN", "ADJ"],
         terms_include_types=["PERSON", "ORG"],
@@ -180,9 +180,9 @@ class Origami(BasicSemantics):
                 res, self.data[[self.index_var, self.text_var]], on=self.index_var
             )
 
-            """# Rescale
+            # Rescale
             res[projection_str_1] = scaler.fit_transform(res[[projection_str_1]])
-            res[projection_str_2] = scaler.fit_transform(res[[projection_str_2]])"""
+            res[projection_str_2] = scaler.fit_transform(res[[projection_str_2]])
 
             final_proj = res.copy()
             name_var = self.text_var
@@ -297,8 +297,6 @@ class Origami(BasicSemantics):
         df_proj["project_angle"] = scaler_pyth.fit_transform(
             df_proj["project_angle"].values.reshape(-1, 1)
         )
-
-        self.df_proj = df_proj
 
         if type == "documents":
             # group by term and mean of the vectors
