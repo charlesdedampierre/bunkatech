@@ -10,6 +10,7 @@ def get_embeddings(
     model_path: str,
     model="sbert",
     reduction_size: int = 5,
+    reduce_dimensions=True,
 ):
 
     print("Embeddings..")

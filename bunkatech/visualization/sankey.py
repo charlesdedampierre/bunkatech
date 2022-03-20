@@ -9,7 +9,7 @@ def flatten(list):
     return [item for sublist in list for item in sublist]
 
 
-def make_sankey(df: pd.DataFrame, field: str, index_var: str):
+def make_sankey(df: pd.DataFrame, field: str, index_var: str, width=1000, height=1000):
 
     # first source/values
     source_initital = [0 for x in np.arange(1, 9)]
@@ -85,8 +85,8 @@ def make_sankey(df: pd.DataFrame, field: str, index_var: str):
     fig.update_layout(
         title_text="Basic Sankey Diagram",
         font_size=16,
-        width=4000,
-        height=2500,
+        width=width,
+        height=height,
         margin=dict(l=50, r=800, b=50, t=50, pad=4),
     )
 
