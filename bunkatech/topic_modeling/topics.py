@@ -42,6 +42,7 @@ class TopicModeling(BasicSemantics):
         terms_path=None,
         terms_embeddings_path=None,
         docs_embeddings_path=None,
+        docs_dimension_reduction=5,
     ) -> None:
 
         BasicSemantics.__init__(
@@ -69,6 +70,7 @@ class TopicModeling(BasicSemantics):
             terms_embedding_model=terms_embedding_model,
             docs_embedding_model=docs_embedding_model,
             language=language,
+            docs_dimension_reduction=docs_dimension_reduction,
         )
         """if self.date_var is not None:
 
@@ -127,6 +129,12 @@ class TopicModeling(BasicSemantics):
             self.data[[self.index_var, "cluster"]], topics, on="cluster"
         )
 
+        self.df_topics_names["cluster_name_number"] = (
+            self.df_topics_names["cluster"]
+            + " - "
+            + self.df_topics_names["cluster_name"]
+        )
+
         return self.topics
 
     def visualize_topics_embeddings(self, width: int = 1000, height: int = 1000):
@@ -156,12 +164,55 @@ class TopicModeling(BasicSemantics):
         res["cluster_label"] = (
             res["cluster"].astype(object) + " - " + res["cluster_name"]
         )
-        res = res.dropna().reset_index(drop=True)
+        res = res.reset_index(drop=True)
 
         fig = px.scatter(
             res,
             x="dim_1",
             y="dim_2",
+            color="cluster_label",
+            hover_data=[self.text_var],
+            width=width,
+            height=height,
+        )
+
+        return fig
+
+    def visualize_topics_embeddings_3d(self, width: int = 1000, height: int = 1000):
+
+        """
+        Visualize the embeddings in 2D.
+        There is an hover for the text and clusters have names.
+
+        """
+
+        res = pd.merge(
+            self.docs_embeddings.reset_index(),
+            self.df_topics_names,
+            on=self.index_var,
+        )
+        res = pd.merge(res.drop("cluster", axis=1), self.data, on=self.index_var)
+
+        # if not hasattr(self, "embeddings_2d"):
+        self.embeddings_2d = umap.UMAP(n_components=3, verbose=True).fit_transform(
+            res[[0, 1, 2, 3, 4]]
+        )
+
+        res["dim_1"] = self.embeddings_2d[:, 0]
+        res["dim_2"] = self.embeddings_2d[:, 1]
+        res["dim_3"] = self.embeddings_2d[:, 2]
+
+        res[self.text_var] = res[self.text_var].apply(lambda x: wrap_by_word(x, 10))
+        res["cluster_label"] = (
+            res["cluster"].astype(object) + " - " + res["cluster_name"]
+        )
+        res = res.reset_index(drop=True)
+
+        fig = px.scatter_3d(
+            res,
+            x="dim_1",
+            y="dim_2",
+            z="dim_3",
             color="cluster_label",
             hover_data=[self.text_var],
             width=width,
@@ -186,7 +237,7 @@ class TopicModeling(BasicSemantics):
             on=self.index_var,
         )
         df_centroid = pd.merge(
-            df_centroid.drop([self.text_var, "cluster"], axis=1),
+            df_centroid.drop("cluster", axis=1),
             self.data,
             on=self.index_var,
         )
@@ -198,14 +249,59 @@ class TopicModeling(BasicSemantics):
         res = find_centroids(
             df_centroid,
             text_var=self.text_var,
-            cluster_var="cluster",
+            cluster_var="cluster_name_number",
             top_elements=top_elements,
             dim_lenght=5,
         )
 
         return res
 
-    def temporal_topics(self):
-        if self.date_var is None:
-            raise ValueError("Please fit the class with the 'date' variable")
-        return None
+    def temporal_topics(
+        self,
+        date_var,
+        width=1000,
+        height=500,
+        normalize_y=True,
+        min_range=None,
+        max_range=None,
+    ):
+        """Plot the topics evolution in time"""
+
+        df_time = self.data[[self.index_var, date_var]].copy()
+        df_time = pd.merge(df_time, self.df_topics_names, on=self.index_var)
+        df_time = (
+            df_time.groupby([date_var, "cluster_name_number"])
+            .agg(count_docs=(self.index_var, "count"))
+            .reset_index()
+        )
+        df_time["count_docs_date"] = df_time.groupby(["year"])["count_docs"].transform(
+            lambda x: sum(x)
+        )
+        df_time["normalized_count_docs"] = (
+            df_time["count_docs"] / df_time["count_docs_date"]
+        )
+
+        if min_range is not None and max_range is not None:
+            range_x = (min_range, max_range)
+        else:
+            range_x = (min(df_time[date_var]), max(df_time[date_var]))
+
+        if normalize_y is True:
+            y = "normalized_count_docs"
+        else:
+            y = "count_docs"
+
+        fig = px.bar(
+            df_time,
+            x=date_var,
+            y=y,
+            color="cluster_name_number",
+            width=width,
+            height=height,
+            range_x=range_x,
+        )
+
+        self.date_var = date_var
+        self.df_time = df_time
+
+        return fig

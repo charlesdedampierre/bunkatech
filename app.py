@@ -22,12 +22,20 @@ image = Image.open(
 st.sidebar.image(image)
 
 
+data = pd.read_csv("/Volumes/OutFriend/shaping_ai/data_minus_neutre.csv")
+data = data.sample(3000, random_state=42)
+
+terms_path = "/Volumes/OutFriend/shaping_ai/demo_data/terms.csv"
+terms_embeddings_path = "/Volumes/OutFriend/shaping_ai/demo_data/terms_embeddings.csv"
+docs_embeddings_path = "/Volumes/OutFriend/shaping_ai/demo_data/docs_embeddings.csv"
+
+
 @st.cache(allow_output_mutation=True)
 def bunka_fit(data):
     bunka = Bunka(
         data=data,
-        text_var="description",
-        index_var="imdb",
+        text_var="content",
+        index_var="unique_id",
         extract_terms=True,
         terms_embedding=True,
         docs_embedding=True,
@@ -41,21 +49,15 @@ def bunka_fit(data):
         terms_embedding_model="distiluse-base-multilingual-cased-v1",
         docs_embedding_model="tfidf",
         language="en",
-        terms_path=None,
-        terms_embeddings_path=None,
-        docs_embeddings_path=None,
+        terms_path=terms_path,
+        terms_embeddings_path=terms_embeddings_path,
+        docs_embeddings_path=docs_embeddings_path,
         docs_dimension_reduction=5,
     )
-    bunka.fit(date_var="year", folding=None, popularity_var="avg_vote")
+    bunka.fit(date_var="date", folding=None, popularity_var=None)
     return bunka
 
 
-data = pd.read_csv(
-    "/Users/charlesdedampierre/Desktop/ENS Projects/imaginary-world/db_film_iw (2).csv",
-    index_col=[0],
-)
-
-data = data.sample(1000, random_state=42)
 bunka = bunka_fit(data)
 
 module_choice = st.sidebar.selectbox(
