@@ -274,9 +274,9 @@ class TopicModeling(BasicSemantics):
             .agg(count_docs=(self.index_var, "count"))
             .reset_index()
         )
-        df_time["count_docs_date"] = df_time.groupby(["year"])["count_docs"].transform(
-            lambda x: sum(x)
-        )
+        df_time["count_docs_date"] = df_time.groupby([date_var])[
+            "count_docs"
+        ].transform(lambda x: sum(x))
         df_time["normalized_count_docs"] = (
             df_time["count_docs"] / df_time["count_docs_date"]
         )
