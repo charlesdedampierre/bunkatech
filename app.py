@@ -1,14 +1,12 @@
 import pandas as pd
-from bunkatech.bunka_class import Bunka
 import streamlit as st
+from bunkatech.bunka_class import Bunka
 import toml
 from PIL import Image
 
 pd.options.mode.chained_assignment = None
 
-
 instructions = toml.load("instructions.toml")
-
 
 st.set_page_config(
     layout="wide",
