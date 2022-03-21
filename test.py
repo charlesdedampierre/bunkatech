@@ -1,6 +1,20 @@
 from bunkatech.nested_topic_modeling import NestedTopicModeling
 from bunkatech.semantics.vocabulary_extension import sbert_extension
 import pandas as pd
+<<<<<<< HEAD
+from sklearn.datasets import fetch_20newsgroups
+
+docs = fetch_20newsgroups(subset="all", remove=("headers", "footers", "quotes"))["data"]
+df = pd.DataFrame(docs)
+sample_size = 2000
+df = df.sample(sample_size).reset_index(drop=True)
+df.columns = ["text"]
+df["bindex"] = df.index
+
+#df.to_csv("sample_test.csv", index=False)
+#df = pd.read_csv("sample_test.csv")
+
+=======
 
 from bunkatech.semantics.origami import Origami
 from bunkatech.time import SemanticsTrend
@@ -101,6 +115,7 @@ folding = [
     ["danger", "tuer", "problèmes", "mauvais", "risques", "dangers", "peur"],
     ["savoir", "connaissance", "limite", "cerveau", "immense"],
 ]
+>>>>>>> be660dbd9976d632d4e887ab203a9939274341bc
 
 res = sbert_extension(
     folding[0],
