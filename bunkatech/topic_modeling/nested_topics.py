@@ -263,7 +263,7 @@ class NestedTopicModeling(BasicSemantics):
         )
 
         fig = px.scatter(
-            res.dropna(),
+            res,
             x="dim_1",
             y="dim_2",
             color="clusters",
@@ -308,3 +308,56 @@ class NestedTopicModeling(BasicSemantics):
         )
 
         return res
+
+    def temporal_topics_nested(
+        self,
+        date_var,
+        width=1000,
+        height=500,
+        normalize_y=True,
+        min_range=None,
+        max_range=None,
+    ):
+        """Plot the topics evolution in time"""
+
+        df_time = self.data[[self.index_var, date_var]].copy()
+        df_time = pd.merge(df_time, self.h_clusters_names, on=self.index_var)
+        df_time = (
+            df_time.groupby([date_var, "lemma_0"])
+            .agg(count_docs=(self.index_var, "count"))
+            .reset_index()
+        )
+        df_time["count_docs_date"] = df_time.groupby([date_var])[
+            "count_docs"
+        ].transform(lambda x: sum(x))
+
+        df_time["normalized_count_docs"] = (
+            df_time["count_docs"] / df_time["count_docs_date"]
+        )
+
+        if min_range is not None and max_range is not None:
+            range_x = (min_range, max_range)
+        else:
+            range_x = (min(df_time[date_var]), max(df_time[date_var]))
+
+        if normalize_y is True:
+            y = "normalized_count_docs"
+        else:
+            y = "count_docs"
+
+        df_time = df_time.rename(columns={"lemma_0": "topics_names"})
+
+        fig = px.bar(
+            df_time,
+            x=date_var,
+            y=y,
+            color="topics_names",
+            width=width,
+            height=height,
+            range_x=range_x,
+        )
+
+        self.date_var = date_var
+        self.df_time = df_time
+
+        return fig

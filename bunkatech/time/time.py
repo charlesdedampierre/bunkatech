@@ -69,7 +69,7 @@ class SemanticsTrends(BasicSemantics):
     def fit(self, date_var):
         # Only Fit on the date
         self.date_var = date_var
-        self.data[self.date_var] = pd.to_datetime(self.data[self.date_var])
+        self.data["date_format"] = pd.to_datetime(self.data[self.date_var])
 
     def moving_average_comparison(
         self,
@@ -80,7 +80,7 @@ class SemanticsTrends(BasicSemantics):
         top_terms_period=10,
     ):
         """compare the difference bewteen two moving  averages"""
-        df = self.data.groupby(self.date_var).agg(count_ids=(self.index_var, "count"))
+        df = self.data.groupby("date_format").agg(count_ids=(self.index_var, "count"))
 
         df["trend"] = df["count_ids"].rolling(smoothing_scale).mean()
         df["long_trend"] = df["count_ids"].rolling(context_scale).mean()
@@ -115,7 +115,7 @@ class SemanticsTrends(BasicSemantics):
             try:
                 fig.add_traces(
                     go.Scatter(
-                        x=df[self.date_var],
+                        x=df["date_format"],
                         y=df.ma1,
                         line=dict(color="rgba(0,0,0,0)"),
                         text=df["terms"],
@@ -124,7 +124,7 @@ class SemanticsTrends(BasicSemantics):
 
                 fig.add_traces(
                     go.Scatter(
-                        x=df[self.date_var],
+                        x=df["date_format"],
                         y=df.ma2,
                         line=dict(color="rgba(0,0,0,0)"),
                         fill="tonexty",
@@ -171,12 +171,12 @@ class SemanticsTrends(BasicSemantics):
 
         """
         df = (
-            self.data.groupby(self.date_var)
+            self.data.groupby("date_format")
             .agg(count_ids=(self.index_var, "count"))
             .reset_index()
         )
 
-        df["year-month"] = df[self.date_var].astype(str)
+        df["year-month"] = df["date_format"].astype(str)
         df["year-month"] = df["year-month"].apply(lambda x: x[:7])
         candles = (
             df.groupby("year-month")
@@ -190,16 +190,16 @@ class SemanticsTrends(BasicSemantics):
         candles["MA5"] = candles["mean"].rolling(short_trend_step).mean()
         candles["MA20"] = candles["mean"].rolling(long_trend_step).mean()
 
-        open_date = df.groupby("year-month")[self.date_var].min().reset_index()
+        open_date = df.groupby("year-month")["date_format"].min().reset_index()
         open_date = pd.merge(
-            open_date, df[[self.date_var, "count_ids"]], on=self.date_var
+            open_date, df[["date_format", "count_ids"]], on="date_format"
         )
         open_date = open_date[["year-month", "count_ids"]]
         open_date.columns = ["year-month", "open"]
 
-        close_date = df.groupby("year-month")[self.date_var].max().reset_index()
+        close_date = df.groupby("year-month")["date_format"].max().reset_index()
         close_date = pd.merge(
-            close_date, df[[self.date_var, "count_ids"]], on=self.date_var
+            close_date, df[["date_format", "count_ids"]], on="date_format"
         )
         close_date = close_date[["year-month", "count_ids"]]
         close_date.columns = ["year-month", "close"]
@@ -267,7 +267,7 @@ class SemanticsTrends(BasicSemantics):
         """Count the number of documents in a specific date time"""
 
         df = (
-            self.data.groupby(self.date_var)
+            self.data.groupby("date_format")
             .agg(count_ids=(self.index_var, "count"))
             .reset_index()
         )
@@ -283,7 +283,7 @@ class SemanticsTrends(BasicSemantics):
         )
 
         trace1 = go.Scatter(
-            x=df[self.date_var],
+            x=df["date_format"],
             y=df["count_ids"],
             mode="lines",
             marker=dict(
@@ -293,7 +293,7 @@ class SemanticsTrends(BasicSemantics):
         )
 
         trace2 = go.Scatter(
-            x=df[self.date_var],
+            x=df["date_format"],
             y=df["trend"],
             mode="lines",
             marker=dict(
@@ -304,7 +304,7 @@ class SemanticsTrends(BasicSemantics):
         )
 
         trace3 = go.Scatter(
-            x=df[self.date_var],
+            x=df["date_format"],
             y=df["lower"],
             mode="lines",
             marker=dict(
@@ -315,7 +315,7 @@ class SemanticsTrends(BasicSemantics):
         )
 
         trace4 = go.Scatter(
-            x=df[self.date_var],
+            x=df["date_format"],
             y=df["upper"],
             mode="lines",
             marker=dict(
@@ -353,8 +353,8 @@ class SemanticsTrends(BasicSemantics):
 
         # Merge timeline and terms
         df_date = pd.concat([x for x in self.dfs]).reset_index()
-        fin = pd.merge(df_date, df_terms, on=self.date_var)
-        fin = fin[[self.date_var, "label", "group", "main form"]]
+        fin = pd.merge(df_date, df_terms, on="date_format")
+        fin = fin[["date_format", "label", "group", "main form"]]
 
         _, _, edge = specificity(fin, X="group", Y="main form", Z=None, top_n=top_n)
         final = pd.merge(edge, df_date, on="group")
@@ -368,8 +368,8 @@ class SemanticsTrends(BasicSemantics):
             final.groupby(["group", "label"])
             .agg(
                 terms=("main form", join),
-                min_date=(self.date_var, "min"),
-                max_date=(self.date_var, "max"),
+                min_date=("date_format", "min"),
+                max_date=("date_format", "max"),
             )
             .reset_index()
         )

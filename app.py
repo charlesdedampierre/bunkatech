@@ -65,12 +65,15 @@ module_choice = st.sidebar.selectbox(
         "Semantic Nestedness",
         "Semantic Networks",
         "Top Documents",
+        "Temporal Trends",
         "Deep Dive",
     ],
     index=1,
 )
 
 if module_choice == "Semantic Origamis":
+    # reset everytime we do this process
+    bunka.data = bunka.data_initial.copy()
     st.title("Semantic Origamis")
     col1, col2 = st.columns([1, 3])
     with col1:
@@ -93,6 +96,8 @@ if module_choice == "Semantic Origamis":
             st.plotly_chart(fig)
 
 if module_choice == "Semantic Nestedness":
+    # reset everytime we do this process
+    bunka.data = bunka.data_initial.copy()
     st.title("Semantic Nestedness")
     col1, col2 = st.columns([1, 3])
     with col1:
@@ -131,6 +136,8 @@ if module_choice == "Semantic Nestedness":
 
 
 if module_choice == "Semantic Networks":
+    # reset everytime we do this process
+    bunka.data = bunka.data_initial.copy()
     st.title("Semantic Networks")
     col1, col2 = st.columns([1, 3])
     with col1:
@@ -138,13 +145,15 @@ if module_choice == "Semantic Networks":
         top_n = int(top_n)
         black_hole_force = st.number_input(label="Black Hole Force", value=1)
         n_cluster = st.number_input(label="Cluster Number", value=10)
+        global_filter = st.number_input(label="global_filter", value=0.2)
+        n_neighbours = st.number_input(label="n_neighbours", value=10)
 
     with col2:
         fig = bunka.fit_draw(
             variables=["main form"],
             top_n=top_n,
-            global_filter=0.2,
-            n_neighbours=6,
+            global_filter=global_filter,
+            n_neighbours=n_neighbours,
             method="force_directed",
             n_cluster=n_cluster,
             bin_number=30,
@@ -161,8 +170,17 @@ if module_choice == "Semantic Networks":
 
         st.plotly_chart(fig)
 
+if module_choice == "Temporal Trends":
+    # reset everytime we do this process
+    bunka.data = bunka.data_initial.copy()
+    st.subheader("Temporal Trends")
+    fig = bunka.temporal_topics_nested(date_var="date", normalize_y=False)
+    st.plotly_chart(fig)
+
 
 if module_choice == "Top Documents":
+    # reset everytime we do this process
+    bunka.data = bunka.data_initial.copy()
     st.subheader("Top Documents")
     top_docs = bunka.get_top_popular_docs(top_n=10)
     docs = top_docs[bunka.text_var]
@@ -220,6 +238,7 @@ if module_choice == "Deep Dive":
             "Semantic Origamis",
             "Semantic Networks",
             "Top Documents",
+            "Top Terms",
         ],
         index=1,
     )
@@ -292,3 +311,9 @@ if module_choice == "Deep Dive":
             )
 
             st.plotly_chart(fig)
+
+    if module_choice_deep_dive == "Top Terms":
+        st.title("Top Terms")
+        terms = bunka.df_indexed.reset_index(drop=True)
+        terms = terms[["main form"]].drop_duplicates().reset_index(drop=True).head(100)
+        st.dataframe(terms, height=1000)
