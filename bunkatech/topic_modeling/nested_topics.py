@@ -274,7 +274,7 @@ class NestedTopicModeling(BasicSemantics):
 
         return fig
 
-    def get_centroid_documents(
+    def get_centroid_documents_nested(
         self, nested_level: int = 0, top_elements: int = 2
     ) -> pd.DataFrame:
         """For a given nestednness, Get the centroid element(s), the farest element

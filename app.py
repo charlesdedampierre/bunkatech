@@ -14,18 +14,21 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
     page_title="Bunka",
 )
-image = Image.open(
-    "/Users/charlesdedampierre/Desktop/BUNKATECH/topic_view/images/bunka_logo.png"
-)
+image = Image.open("images/bunka_logo.png")
+image_2 = Image.open("images/shapingAI.png")
 st.sidebar.image(image)
+st.sidebar.image(image_2)
+st.sidebar.title("")
+st.sidebar.title("")
 
-
-data = pd.read_csv("/Volumes/OutFriend/shaping_ai/data_minus_neutre.csv")
+data = pd.read_csv(
+    "/Users/charlesdedampierre/Desktop/SciencePo Projects/shaping-ai/demo_data/data_minus_neutre.csv"
+)
 data = data.sample(3000, random_state=42)
 
-terms_path = "/Volumes/OutFriend/shaping_ai/demo_data/terms.csv"
-terms_embeddings_path = "/Volumes/OutFriend/shaping_ai/demo_data/terms_embeddings.csv"
-docs_embeddings_path = "/Volumes/OutFriend/shaping_ai/demo_data/docs_embeddings.csv"
+terms_path = "/Users/charlesdedampierre/Desktop/SciencePo Projects/shaping-ai/demo_data/terms.csv"
+terms_embeddings_path = "/Users/charlesdedampierre/Desktop/SciencePo Projects/shaping-ai/demo_data/terms_embeddings.csv"
+docs_embeddings_path = "/Users/charlesdedampierre/Desktop/SciencePo Projects/shaping-ai/demo_data/docs_embeddings.csv"
 
 
 @st.cache(allow_output_mutation=True)

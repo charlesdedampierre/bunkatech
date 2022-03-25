@@ -68,6 +68,8 @@ def extract_terms(
     if remove_punctuation == True:
         prepro_text = textacy.preprocessing.remove.punctuation(prepro_text)
 
+    if language == "zh":
+        lang = textacy.load_spacy_lang("zh_core_web_sm", disable=())
     if language == "en":
         lang = textacy.load_spacy_lang("en_core_web_sm", disable=())
     elif language == "fr":

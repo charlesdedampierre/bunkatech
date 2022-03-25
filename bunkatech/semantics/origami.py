@@ -80,27 +80,30 @@ class Origami(BasicSemantics):
         )
 
     def compute_projection_embeddings(
-        self, projection_1=["cooperative", "salaud"], projection_2=["woman", "man"]
+        self, projection_1=["cooperative", "salaud"], projection_2=None
     ):
         """Compute embeddings of the newly projected terms and
         associate them to the initial embeddings matrix
 
         """
-
-        projection_all = projection_1 + projection_2
-        self.projection_all = projection_all
+        if projection_2 is not None:
+            self.projection_all = projection_1 + projection_2
+        else:
+            self.projection_all = projection_1
 
         # index the new projected terms
         self.index_terms(projection=True)
 
         # Encode the results
         model = SentenceTransformer(self.terms_embedding_model)
-        projection_embeddings = model.encode(projection_all, show_progress_bar=True)
+        projection_embeddings = model.encode(
+            self.projection_all, show_progress_bar=True
+        )
 
         full_terms_embeddings = np.concatenate(
             [self.terms_embeddings, projection_embeddings]
         )
-        full_terms = self.terms["main form"].to_list() + projection_all
+        full_terms = self.terms["main form"].to_list() + self.projection_all
         full_terms_prepro = [x.lower() for x in full_terms]
 
         df_bert = cosine_similarity(full_terms_embeddings)
@@ -262,25 +265,32 @@ class Origami(BasicSemantics):
 
     def origami_projection_unique(
         self,
-        projection_1: list,
+        left_axis: list,
+        right_axis: list,
         height: int = 1000,
         width: int = 1000,
         type="terms",
         dispersion=True,
         barometer=True,
+        explainer=True,
     ):
         """
 
         Create the projection Space with plotly based on two queries: projection_1 & projection_2
 
         """
+        projection_1 = left_axis + right_axis
+        projection_str_1 = "-".join(right_axis) + " || " + "-".join(left_axis)
+        self.projection_str_1 = projection_str_1
 
-        projection_str_1 = "-".join(projection_1)
+        # Get the embeddings of the new words
         self.df_bert = self.compute_projection_embeddings(projection_1)
 
         # Select the dimentions of interetst in all the similarity matric
         df_proj = self.df_bert[projection_1]
-        df_proj[projection_str_1] = df_proj[projection_1[0]] - df_proj[projection_1[1]]
+        df_proj[projection_str_1] = df_proj[left_axis].mean(axis=1) - df_proj[
+            right_axis
+        ].mean(axis=1)
 
         # Scale the results from -1 to 1
         scaler = MinMaxScaler(feature_range=(-1, 1))
@@ -293,10 +303,10 @@ class Origami(BasicSemantics):
             1 - df_proj[projection_str_1] ** 2
         )  # Pythagore
 
-        scaler_pyth = MinMaxScaler(feature_range=(0, 1))
+        """scaler_pyth = MinMaxScaler(feature_range=(0, 1))
         df_proj["project_angle"] = scaler_pyth.fit_transform(
             df_proj["project_angle"].values.reshape(-1, 1)
-        )
+        )"""
 
         if type == "documents":
             # group by term and mean of the vectors
@@ -307,6 +317,8 @@ class Origami(BasicSemantics):
                 left_on="term",
                 right_on="main form",
             )
+
+            self.proj_terms = fin
 
             # Compute the mean for every id: every id is the mean of all the texts it contains
             res = (
@@ -326,10 +338,11 @@ class Origami(BasicSemantics):
             )
 
             res["project_angle"] = np.sqrt(1 - res[projection_str_1] ** 2)
-            res["project_angle"] = scaler_pyth.fit_transform(res[["project_angle"]])
+            # res["project_angle"] = scaler_pyth.fit_transform(res[["project_angle"]])
 
-            # Rescale
+            # Rescale the x-axis
             res[projection_str_1] = scaler.fit_transform(res[[projection_str_1]])
+            res["project_angle"] = np.sqrt(1 - res[projection_str_1] ** 2)
 
             final_proj = res.copy()
             name_var = self.text_var
@@ -337,8 +350,12 @@ class Origami(BasicSemantics):
             # Get rid of nan values
             final_proj = final_proj[final_proj[name_var].notna()]
             final_proj[name_var] = final_proj[name_var].apply(
-                lambda x: wrap_by_word(x, 10)
+                lambda x: wrap_by_word(x, 20)
             )
+            self.proj_docs = final_proj
+
+            if explainer is True:
+                final_proj = self.nlp_explainer()
 
         elif type == "terms":
             final_proj = df_proj.copy()
@@ -351,7 +368,7 @@ class Origami(BasicSemantics):
             final_proj["project_angle"] = final_proj["project_angle"].apply(
                 lambda x: x
                 * random.uniform(
-                    0.001,
+                    0.0001,
                     1,
                 )
             )
@@ -392,7 +409,7 @@ class Origami(BasicSemantics):
         if barometer:
             # Get the barometer Line
             baro_mean = final_proj[projection_str_1].mean()
-            baro_mean_angle = np.sqrt(1 - baro_mean ** 2)
+            baro_mean_angle = np.sqrt(1 - baro_mean**2)
             trace_barometer = go.Scatter(
                 x=[0.0, baro_mean, None],
                 y=[0.0, baro_mean_angle, None],
@@ -407,9 +424,41 @@ class Origami(BasicSemantics):
             title="Semantic Origami",
             height=height,
             width=width,
-            xaxis_title="<--- " + " | ".join(reversed(projection_1)) + " --->",
+            xaxis_title="<--- " + projection_str_1 + " --->",
         )
 
-        self.df_fig = final_proj
+        self.final_proj = final_proj
 
         return fig
+
+    def nlp_explainer(self):
+        """
+
+        Add to the decription of the text the reason why a text has been associated to a specific location
+        rather than another. In other words, it gives the proximity of the terms contained in the documents
+        to the axis
+        """
+
+        df_explained = self.proj_terms.copy().drop_duplicates()
+
+        df_explained[self.projection_str_1] = round(
+            df_explained[self.projection_str_1], 2
+        )
+        df_explained["term_valence"] = (
+            df_explained["main form"].astype(str)
+            + ": "
+            + df_explained[self.projection_str_1].astype(str)
+        )
+        df_explained = df_explained.sort_values(
+            [self.index_var, self.projection_str_1], ascending=(True, False)
+        )
+        df_explained = (
+            df_explained.groupby(self.index_var)["term_valence"]
+            .apply(lambda x: "<br>".join(x))
+            .reset_index()
+        )
+
+        fin = pd.merge(self.proj_docs, df_explained, on=self.index_var)
+        fin[self.text_var] = fin[self.text_var] + "<br><br>" + fin["term_valence"]
+
+        return fin

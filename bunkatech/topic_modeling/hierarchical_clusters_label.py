@@ -46,3 +46,6 @@ def hierarchical_clusters_label(
             full_toop = full_toop.append(toop)
         new = pd.merge(new, full_toop, on=f"level_{tr}", how="left")
     return new
+
+
+# get rid of prevous clusters

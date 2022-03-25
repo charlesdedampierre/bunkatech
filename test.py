@@ -1,7 +1,15 @@
 import pandas as pd
 from bunkatech.topic_modeling.nested_topics import NestedTopicModeling
 
-data = pd.read_csv('/Volumes/OutFriend/shaping_ai/data_minus_neutre.csv')
+from sentence_transformers import SentenceTransformer
+
+
+model = SentenceTransformer("/Users/charlesdedampierre/Desktop/all-MiniLM-L6-v2")
+docs = ["this is a test"]
+print("Territory embedding..")
+emb = model.encode(docs, show_progress_bar=True)
+
+"""data = pd.read_csv('/Volumes/OutFriend/shaping_ai/data_minus_neutre.csv')
 data = data.sample(3000, random_state = 42)
 # All the basic components to compute before more specialized computation
 
@@ -34,7 +42,7 @@ fig = nested.nested_maps(
         height=1000,
         query=None)
 
-fig.show()
+"""
 
 """docs = fetch_20newsgroups(subset="all", remove=("headers", "footers", "quotes"))["data"]
 df = pd.DataFrame(docs)
@@ -43,8 +51,8 @@ df = df.sample(sample_size).reset_index(drop=True)
 df.columns = ["text"]
 df["bindex"] = df.index"""
 
-#df.to_csv("sample_test.csv", index=False)
-#df = pd.read_csv("sample_test.csv")
+# df.to_csv("sample_test.csv", index=False)
+# df = pd.read_csv("sample_test.csv")
 
 
 """res = sbert_extension(

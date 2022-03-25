@@ -334,7 +334,7 @@ class SemanticsTrends(BasicSemantics):
 
         fig.update_layout(
             title=dict(
-                text="<b>Semantic Candles</b>",
+                text="<b>Temporal Trend</b>",
                 font=dict(family="Arial", size=20, color="#000000"),
             ),
             height=height,
