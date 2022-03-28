@@ -2,7 +2,7 @@ import pandas as pd
 from gensim.models import Word2Vec as wv
 from .utils import erase_comma, erase_point, erase_accent
 from sentence_transformers import SentenceTransformer
-from .extract_terms import extract_terms_df
+from .extract_terms_old import extract_terms_df
 from ..search.query import make_query
 
 

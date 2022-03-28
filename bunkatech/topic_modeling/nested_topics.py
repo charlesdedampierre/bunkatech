@@ -44,6 +44,8 @@ class NestedTopicModeling(BasicSemantics):
         terms_embeddings_path=None,
         docs_embeddings_path=None,
         docs_dimension_reduction=5,
+        docs_multiprocessing=True,
+        terms_multiprocessing=True,
     ) -> None:
 
         BasicSemantics.__init__(
@@ -72,6 +74,8 @@ class NestedTopicModeling(BasicSemantics):
             docs_embedding_model=docs_embedding_model,
             language=language,
             docs_dimension_reduction=docs_dimension_reduction,
+            terms_multiprocessing=terms_multiprocessing,
+            docs_multiprocessing=docs_multiprocessing,
         )
 
     def fit(self, folding=None):

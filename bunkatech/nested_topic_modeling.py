@@ -6,7 +6,7 @@ import plotly.express as px
 import warnings
 import umap
 
-from .semantics.extract_terms import extract_terms_df
+from .semantics.extract_terms_old import extract_terms_df
 from .semantics.indexer import indexer
 from .semantics.get_embeddings import get_embeddings
 from .semantics.semantic_folding import semantic_folding

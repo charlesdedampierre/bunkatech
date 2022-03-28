@@ -11,14 +11,22 @@ def get_embeddings(
     model="sbert",
     reduction_size: int = 5,
     reduce_dimensions=True,
+    multiprocessing=True,
 ):
 
     print("Embeddings..")
     if model == "sbert":
         model = SentenceTransformer(model_path)
+        model.max_seq_length = 200
         docs = list(data[field])
         print("Territory embedding..")
-        emb = model.encode(docs, show_progress_bar=True)
+
+        if multiprocessing:
+            pool = model.start_multi_process_pool()
+            emb = model.encode_multi_process(docs, pool)
+            model.stop_multi_process_pool(pool)
+        else:
+            emb = model.encode(docs, show_progress_bar=True)
 
     elif model == "tfidf":
         model = TfidfVectorizer(max_features=20000)
@@ -34,6 +42,7 @@ def get_embeddings(
         n_components=reduction_size, n_neighbors=10, metric="cosine", verbose=True
     )
 
-    emb_red = red.fit_transform(emb)
+    if reduce_dimensions:
+        emb = red.fit_transform(emb)
 
-    return emb_red, emb
+    return emb

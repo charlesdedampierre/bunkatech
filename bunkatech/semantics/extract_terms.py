@@ -6,6 +6,11 @@ import textacy.tm
 from functools import partial
 import numpy as np
 from tqdm import tqdm
+from multiprocessing import Pool
+import warnings
+
+warnings.filterwarnings("ignore")
+from functools import partial
 
 
 def chi2_table(doc_term_matrix: np.array, vocab: dict) -> pd.DataFrame:
@@ -75,6 +80,7 @@ def extract_terms(
     elif language == "fr":
         lang = textacy.load_spacy_lang("fr_core_news_lg", disable=())
     doc = textacy.make_spacy_doc(prepro_text, lang=lang)
+    # fr_dep_news_trf
 
     terms = []
     if ngs is True:
@@ -123,7 +129,7 @@ def extract_terms(
     df = pd.DataFrame(df, columns=["text", "lemma", "ent"])
     df = df.drop_duplicates()
 
-    return df, final
+    return df
 
 
 def extract_terms_df(
@@ -140,6 +146,8 @@ def extract_terms_df(
     include_pos=["NOUN", "PROPN", "ADJ"],
     include_types=["PERSON", "ORG"],
     language="en",
+    multiprocessing=False,
+    multiprocessing_pools=8,
 ):
     data = data[data[text_var].notna()]
     data = data[text_var]
@@ -147,25 +155,51 @@ def extract_terms_df(
     data = data.sample(min(sample_size, len(data)))
     sentences = data.to_list()
 
-    df_terms = pd.DataFrame()
-    df_terms_spacy = []
-    pbar = tqdm(total=len(sentences), desc="Extract Terms")
-    for text in sentences:
-        df, final = extract_terms(
-            text,
-            ngs=ngs,
-            ents=ents,
-            ncs=ncs,
-            drop_emoji=drop_emoji,
-            remove_punctuation=remove_punctuation,
-            ngrams=ngrams,
-            include_pos=include_pos,
-            include_types=include_types,
-            language=language,
-        )
-        df_terms = df_terms.append(df)
-        df_terms_spacy.append(final)
-        pbar.update(1)
+    if multiprocessing is True:
+        with Pool(multiprocessing_pools) as p:
+            res = list(
+                tqdm(
+                    p.imap(
+                        partial(
+                            extract_terms,
+                            ngs=ngs,
+                            ents=ents,
+                            ncs=ncs,
+                            drop_emoji=drop_emoji,
+                            remove_punctuation=remove_punctuation,
+                            ngrams=ngrams,
+                            include_pos=include_pos,
+                            include_types=include_types,
+                            language=language,
+                        ),
+                        sentences,
+                    ),
+                    total=len(sentences),
+                )
+            )
+
+        df_terms = pd.concat([x for x in res])
+
+    else:
+        df_terms = pd.DataFrame()
+        # df_terms_spacy = []
+        pbar = tqdm(total=len(sentences), desc="Extract Terms")
+        for text in sentences:
+            df = extract_terms(
+                text,
+                ngs=ngs,
+                ents=ents,
+                ncs=ncs,
+                drop_emoji=drop_emoji,
+                remove_punctuation=remove_punctuation,
+                ngrams=ngrams,
+                include_pos=include_pos,
+                include_types=include_types,
+                language=language,
+            )
+            df_terms = df_terms.append(df)
+            # df_terms_spacy.append(df[1])
+            pbar.update(1)
 
     df_terms["text"] = df_terms["text"].apply(lambda x: x.strip())
 
@@ -202,22 +236,62 @@ def extract_terms_df(
         lambda x: x.lower().capitalize()
     )
 
-    # Create chi2 tablme
+    """# Create chi2 tablme
     terms_lemma = [[span.lemma_.lower() for span in doc] for doc in df_terms_spacy]
     doc_term_matrix, vocab = textacy.representations.build_doc_term_matrix(
         terms_lemma, tf_type="linear", idf_type="smooth"
     )
-    df_chi2 = chi2_table(doc_term_matrix, vocab)
+    df_chi2 = chi2_table(doc_term_matrix, vocab)"""
 
     full_list = pd.merge(count_terms, text_list, on="lemma")
     full_list = pd.merge(full_list, main_form, on="lemma")
     full_list = pd.merge(full_list, entities, on="lemma", how="left")
-    full_list = pd.merge(full_list, df_chi2, on="lemma", how="left")
+    # full_list = pd.merge(full_list, df_chi2, on="lemma", how="left")
 
     full_list = full_list.sort_values("count_terms", ascending=False).reset_index(
         drop=True
     )
     full_list = full_list.head(limit)
-    full_list = full_list[["lemma", "main form", "text", "ent", "count_terms", "chi2"]]
+    # full_list = full_list[["lemma", "main form", "text", "ent", "count_terms", "chi2"]]
+    # full_list = full_list[["lemma", "main form", "text", "ent", "count_terms"]]
 
     return full_list
+
+
+if __name__ == "__main__":
+    path = "/Users/charlesdedampierre/Desktop/SciencePo Projects/shaping-ai/demo_data/data_minus_neutre.csv"
+    data = pd.read_csv(path).sample(3000, random_state=42).reset_index()
+
+    """sentences = data["content"][:1000].to_list()
+
+    with Pool(10) as p:
+        res = list(
+            tqdm(
+                p.imap(partial(extract_terms, ngrams=(2, 2)), sentences),
+                total=len(sentences),
+            )
+        )
+
+    print(res)"""
+
+    """terms = extract_terms_df(data, text_var="content", multiprocessing=True)
+    print(terms)"""
+
+    res = extract_terms_df(
+        data,
+        text_var="content",
+        sample_size=3000,
+        limit=1000,
+        ngs=True,
+        ents=False,
+        ncs=False,
+        drop_emoji=True,
+        remove_punctuation=False,
+        ngrams=(2, 2),
+        include_pos=["NOUN", "PROPN", "ADJ"],
+        include_types=["PERSON", "ORG"],
+        language="fr",
+        multiprocessing=True,
+    )
+
+    print(res)

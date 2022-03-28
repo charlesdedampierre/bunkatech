@@ -1,7 +1,7 @@
 import pandas as pd
 import warnings
 from sklearn.cluster import KMeans
-from .semantics.extract_terms import extract_terms_df
+from .semantics.extract_terms_old import extract_terms_df
 from .semantics.indexer import indexer
 from .semantics.get_embeddings import get_embeddings
 import umap

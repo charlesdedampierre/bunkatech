@@ -52,16 +52,20 @@ class BasicSemantics:
         docs_embedding=True,
         sample_size_terms=500,
         terms_limit=500,
+        terms_multiprocessing=True,
         terms_ents=True,
         terms_ngrams=(1, 2),
         terms_ncs=True,
         terms_include_pos=["NOUN", "PROPN", "ADJ"],
         terms_include_types=["PERSON", "ORG"],
-        terms_embedding_model="distiluse-base-multilingual-cased-v1",
+        terms_embedding_model="all-MiniLM-L6-v2",
         docs_embedding_model="tfidf",
         docs_dimension_reduction=None,
+        docs_multiprocessing=True,
         language="en",
     ):
+
+        # distiluse-base-multilingual-cased-v1
 
         if self.terms_embeddings_path is not None:
             terms_embedding = False
@@ -80,6 +84,7 @@ class BasicSemantics:
                 include_pos=terms_include_pos,
                 include_types=terms_include_types,
                 language=language,
+                multiprocessing=terms_multiprocessing,
             )
 
         if terms_embedding:
@@ -91,6 +96,7 @@ class BasicSemantics:
             self.docs_embeddings = self.docs_embeddings_function(
                 docs_embedding_model=docs_embedding_model,
                 dimension_reduction=docs_dimension_reduction,
+                multiprocessing=docs_multiprocessing,
             )
 
         self.docs_embedding_model = docs_embedding_model
@@ -107,6 +113,7 @@ class BasicSemantics:
         include_types=["PERSON", "ORG"],
         language="en",
         db_path=".",
+        multiprocessing=True,
     ):
         terms = extract_terms_df(
             self.data,
@@ -122,6 +129,7 @@ class BasicSemantics:
             include_pos=include_pos,
             include_types=include_types,
             language=language,
+            multiprocessing=multiprocessing,
         )
 
         terms["main form"] = terms["main form"].apply(lambda x: x.lower())
@@ -155,6 +163,7 @@ class BasicSemantics:
         self,
         docs_embedding_model="distiluse-base-multilingual-cased-v1",
         dimension_reduction=None,
+        multiprocessing=True,
     ):
 
         if docs_embedding_model == "tfidf":
@@ -164,10 +173,16 @@ class BasicSemantics:
             docs_embeddings = docs_embeddings.todense()
 
         else:
+            print("Start Embedding...")
             # Embed the docs with sbert
             model = SentenceTransformer(docs_embedding_model)
             docs = list(self.data[self.text_var])
-            docs_embeddings = model.encode(docs, show_progress_bar=True)
+            if multiprocessing:
+                pool = model.start_multi_process_pool()
+                docs_embeddings = model.encode_multi_process(docs, pool)
+                model.stop_multi_process_pool(pool)
+            else:
+                docs_embeddings = model.encode(docs, show_progress_bar=True)
 
         if dimension_reduction is not None:
             docs_embeddings = umap.UMAP(

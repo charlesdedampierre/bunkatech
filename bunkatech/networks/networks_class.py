@@ -13,6 +13,12 @@ from ..basic_class import BasicSemantics
 
 
 class SemanticNetworks(BasicSemantics):
+    """
+    Class made of a wide range of functions performing Networks analysis such as:
+    - Graph Embeddings
+    - Graph plots
+    """
+
     def __init__(
         self,
         data,
@@ -113,7 +119,7 @@ class SemanticNetworks(BasicSemantics):
 
         return fig
 
-    def coocurrence_multiple(self):
+    def coocurrence_multiple(self) -> pd.DataFrame:
 
         fin = pd.DataFrame()
         for var in self.variables:

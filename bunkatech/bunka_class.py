@@ -32,6 +32,8 @@ class Bunka(
         terms_embeddings_path=None,
         docs_embeddings_path=None,
         docs_dimension_reduction=5,
+        docs_multiprocessing=True,
+        terms_multiprocessing=True,
     ):
 
         super().__init__(
@@ -55,6 +57,8 @@ class Bunka(
             terms_embeddings_path=terms_embeddings_path,
             docs_embeddings_path=docs_embeddings_path,
             docs_dimension_reduction=docs_dimension_reduction,
+            docs_multiprocessing=docs_multiprocessing,
+            terms_multiprocessing=terms_multiprocessing,
         )
 
         # for the nestedness

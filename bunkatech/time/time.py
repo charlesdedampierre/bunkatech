@@ -376,7 +376,7 @@ class SemanticsTrends(BasicSemantics):
 
         # Get only the top terms
         # res_date = res_date[res_date["label"] == 1]
-        res_date["lenght"] = res_date["max_date"] - res_date["min_date"]
+        # res_date["lenght"] = res_date["max_date"] - res_date["min_date"]
 
         self.df_date_specificity = res_date
 
