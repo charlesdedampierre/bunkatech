@@ -13,7 +13,7 @@ documentation/
 __pycache__/
 *.py[cod]
 *$py.class
-*.csv
+#*.csv
 .DS_Store
 
 
