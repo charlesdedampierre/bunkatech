@@ -21,14 +21,12 @@ st.sidebar.image(image_2)
 st.sidebar.title("")
 st.sidebar.title("")
 
-data = pd.read_csv(
-    "/Users/charlesdedampierre/Desktop/SciencePo Projects/shaping-ai/demo_data/data_minus_neutre.csv"
-)
+data = pd.read_csv("data/demo_data/data_minus_neutre.csv")
 data = data.sample(3000, random_state=42)
 
-terms_path = "/Users/charlesdedampierre/Desktop/SciencePo Projects/shaping-ai/demo_data/terms.csv"
-terms_embeddings_path = "/Users/charlesdedampierre/Desktop/SciencePo Projects/shaping-ai/demo_data/terms_embeddings.csv"
-docs_embeddings_path = "/Users/charlesdedampierre/Desktop/SciencePo Projects/shaping-ai/demo_data/docs_embeddings.csv"
+terms_path = "data/demo_data/terms.csv"
+terms_embeddings_path = "data/demo_data/terms_embeddings.csv"
+docs_embeddings_path = "data/demo_data/docs_embeddings.csv"
 
 
 @st.cache(allow_output_mutation=True)
@@ -80,15 +78,23 @@ if module_choice == "Semantic Origamis":
     st.title("Semantic Origamis")
     col1, col2 = st.columns([1, 3])
     with col1:
-        search = st.text_input(label="Enter a dimention", value="critique, promesse")
+        left_axis = st.text_input(
+            label="Enter the terms to describe the left part of the axis",
+            value="positif, bien, rassurant",
+        )
+        right_axis = st.text_input(
+            label="Enter the terms to describe the right part of the axis",
+            value="négatif, mal, angoissant",
+        )
         projection_item = st.selectbox(
             label="Chose what item to display", options=["terms", "documents"], index=1
         )
     with col2:
-        if search:
+        if left_axis and right_axis:
             # Create a way to enter different words
             fig = bunka.origami_projection_unique(
-                projection_1=search.split(","),
+                left_axis=left_axis.split(","),
+                right_axis=right_axis.split(","),
                 height=500,
                 width=1000,
                 type=projection_item,
@@ -260,9 +266,15 @@ if module_choice == "Deep Dive":
         st.title("Semantic Origamis")
         col1, col2 = st.columns([1, 3])
         with col1:
-            search = st.text_input(
-                label="Enter a dimention", value="critique, promesse"
+            left_axis = st.text_input(
+                label="Enter the terms to describe the left part of the axis",
+                value="positif, bien, rassurant",
             )
+            right_axis = st.text_input(
+                label="Enter the terms to describe the right part of the axis",
+                value="négatif, mal, angoissant",
+            )
+
             projection_item = st.selectbox(
                 label="Chose what item to display",
                 options=["terms", "documents"],
@@ -272,7 +284,8 @@ if module_choice == "Deep Dive":
             if search:
                 # Create a way to enter different words
                 fig = bunka.origami_projection_unique(
-                    projection_1=search.split(","),
+                    left_axis=left_axis.split(","),
+                    right_axis=right_axis.split(","),
                     height=500,
                     width=1000,
                     type=projection_item,
