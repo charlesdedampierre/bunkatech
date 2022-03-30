@@ -15,7 +15,7 @@ scipy==1.7.3
 sentence_transformers==2.2.0
 setuptools==49.2.1
 streamlit==1.8.1
-textacy==0.12.0
+textacy==0.11.0
 toml==0.10.2
 torch==1.10.2
 tqdm==4.63.0
