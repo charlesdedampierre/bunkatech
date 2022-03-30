@@ -4,7 +4,7 @@ saved_graph/
 data_scraped/
 *.html
 .vscode/
-
+work_in_progress/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
