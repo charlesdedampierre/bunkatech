@@ -21,7 +21,7 @@ st.sidebar.image(image_2)
 st.sidebar.title("")
 st.sidebar.title("")
 
-data = pd.read_csv("data/demo_data/data_minus_neutre.csv")
+data = pd.read_csv("data/demo_data/data_minus_neutre_sample_3000_42.csv")
 data = data.sample(3000, random_state=42)
 
 terms_path = "data/demo_data/terms.csv"
