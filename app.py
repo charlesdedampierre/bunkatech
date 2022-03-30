@@ -281,7 +281,7 @@ if module_choice == "Deep Dive":
                 index=1,
             )
         with col2:
-            if search:
+            if right_axis and left_axis:
                 # Create a way to enter different words
                 fig = bunka.origami_projection_unique(
                     left_axis=left_axis.split(","),
