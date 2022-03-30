@@ -7,6 +7,7 @@ data_scraped/
 work_in_progress/
 documentation/
 !data/demo_data/*
+!setup.sh
 
 
 # Byte-compiled / optimized / DLL files
