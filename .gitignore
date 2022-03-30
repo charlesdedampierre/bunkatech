@@ -6,6 +6,7 @@ data_scraped/
 .vscode/
 work_in_progress/
 documentation/
+!data/demo_data/*
 
 
 # Byte-compiled / optimized / DLL files

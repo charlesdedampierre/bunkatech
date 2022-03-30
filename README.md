@@ -31,6 +31,7 @@ For an in-depth overview of the features of BUNKAtech you can check the full doc
 ```python
 from bunkatech import Bunka
 from sklearn.datasets import fetch_20newsgroups
+import pandas as pd
  
 docs = fetch_20newsgroups(subset='all',  remove=('headers', 'footers', 'quotes'))['data']
 data = pd.DataFrame(docs, columns = ['docs'])
