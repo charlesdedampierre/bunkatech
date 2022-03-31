@@ -1,5 +1,7 @@
 # BUNKAtech
 
+<img src="images/bunka_logo.png" width="50%" height="50%" align="right" />
+
 Bunkatech is an aggregation of machine learning modules specialized in the embedding of multi-format information.
 
 The modules carry out semantic tasks using embeddings (terms extraction, document embeddings etc), Network analysis using Graph Embeddings, Search using Semantic Search, Trend Analysis using Moving Averages, Topic Modeling, Nested Topic Modeling, Image Embedding & Front-end display using Streamlit.
