@@ -1,5 +1,10 @@
 # venv
 
+update.sh
+commit.sh
+ignore.sh
+
+
 test/
 # Project specific
 saved_graph/
