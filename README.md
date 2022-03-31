@@ -55,21 +55,34 @@ For an in-depth overview of the features of BUNKAtech you can check the full doc
 
 ```python
 from bunkatech import Bunka
-from sklearn.datasets import fetch_20newsgroups
 import pandas as pd
- 
-docs = fetch_20newsgroups(subset='all',  remove=('headers', 'footers', 'quotes'))['data']
-data = pd.DataFrame(docs, columns = ['docs'])
+
+data = pd.read_csv('../data/imdb.csv', index_col = [0])
 data = data.sample(2000, random_state = 42)
-data['doc_index'] = data.index
 
-
-bunka = Bunka(data, 
-            text_var = 'docs', 
-            index_var = 'doc_index', 
-            extract_terms=True,
-            terms_embedding=False,
-            docs_embedding=False)
+# Instantiate the class. This will extract terms from the the text_var column, embed those terms and embed the documents.
+bunka = Bunka(data = data,
+                text_var = 'description',
+                index_var = 'imdb',
+                extract_terms=True,
+                terms_embedding=True,
+                docs_embedding=True,
+                sample_size_terms=2000,
+                terms_limit=2000,
+                terms_ents=False,
+                terms_ngrams=(2, 2),
+                terms_ncs=False,
+                terms_include_pos=["NOUN", "PROPN", "ADJ"],
+                terms_include_types=["PERSON", "ORG"],
+                terms_embedding_model="all-MiniLM-L6-v2",
+                docs_embedding_model="all-MiniLM-L6-v2",
+                language="en",
+                terms_path=None,
+                docs_dimension_reduction = 5,
+                terms_embeddings_path=None,
+                docs_embeddings_path=None,
+                docs_multiprocessing = True,
+                terms_multiprocessing = True)
 
 
 # Extract the computed objects
@@ -79,9 +92,7 @@ docs_embeddings = bunka.docs_embeddings
 
 ```
 
-As the class inherits from **BasicSemantics**, it also instantiates itself with a pandas DataFrame and the name of the text_var columns & index_var columns. There is a lighter fitted part.
-
-As the class also inherits from other sublasses, we can call also their methods without recodign everything in the Bunka class.
+Try out Some modules of Bunka
 
 ```python
 fig = bunka.origami_projection_unique(
@@ -98,7 +109,7 @@ fig = bunka.origami_projection_unique(
 fig.show()
 ```
 
-<img src="images/sunburst.png" width="60%" height="60%" align="center" />
+<img src="images/origami.png" width="60%" height="60%" align="center" />
 
 The code above displays the projection of the terms on an axis 'love-hate' following the methodology contained in the following [paper](https://journals.sagepub.com/doi/full/10.1177/0003122419877135).
 
@@ -125,7 +136,24 @@ fig = bunka.fit_draw(
         )
 ```
 
+<img src="images/networks.png" width="50%" height="50%" align="center" />
+
 The code above calls a methods of the SemanticNetworks class. it creates a network of extracted terms using the [node2vec algorithm](https://snap.stanford.edu/node2vec/)
+
+Display Nested Maps
+
+```python
+fig_nested = bunka.nested_maps(
+                                size_rule="docs_size",
+                                map_type="treemap", # Try sunburst
+                                width=800,
+                                height=800,
+                                query=None) # You can query the map with an exact query
+
+fig_nested.show()
+```
+
+<img src="images/nested.png" width="50%" height="50%" align="center" />
 
 ## Overview
 
