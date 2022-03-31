@@ -23,16 +23,17 @@ If you wish to deactivate the venv, type the following:
 deactivate
 ```
 
-Clone the repository
+Clone the repository and enter it. The cloning process may take few minutes.
 
 ```bash
 git clone https://github.com/charlesdedampierre/bunkatech.git
+cd bunkatech/
 ```
 
 Then, install all the necessary packages:
 
 ```bash
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 
 Load the main semantics model
@@ -44,9 +45,16 @@ python -m spacy download en_core_web_sm
 In order install the package locally on your marchine, creates the python package using setup.py and install it trought pip in your local package repository.
 
 ```bash
+pip install wheel
 python setup.py sdist bdist_wheel
 cd dist/
 pip install bunkatech-0.0.1.tar.gz
+```
+
+Once this step is over, the bunkatech package have been installed in your environment and can hence be called from anywhere using:
+
+```python
+import bunkatech
 ```
 
 ## Getting Started with real examples
@@ -59,7 +67,7 @@ For an in-depth overview of the features of BUNKAtech you can check the full doc
 from bunkatech import Bunka
 import pandas as pd
 
-data = pd.read_csv('../data/imdb.csv', index_col = [0])
+data = pd.read_csv('bunkatech/data/imdb.csv', index_col = [0])
 data = data.sample(2000, random_state = 42)
 
 # Instantiate the class. This will extract terms from the the text_var column, embed those terms and embed the documents.
