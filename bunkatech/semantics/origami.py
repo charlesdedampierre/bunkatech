@@ -50,6 +50,9 @@ class Origami(BasicSemantics):
         terms_path=None,
         terms_embeddings_path=None,
         docs_embeddings_path=None,
+        terms_multiprocessing=True,
+        docs_multiprocessing=True,
+        docs_dimension_reduction=5,
     ) -> None:
 
         BasicSemantics.__init__(
@@ -77,6 +80,9 @@ class Origami(BasicSemantics):
             terms_embedding_model=terms_embedding_model,
             docs_embedding_model=docs_embedding_model,
             language=language,
+            terms_multiprocessing=terms_multiprocessing,
+            docs_multiprocessing=docs_multiprocessing,
+            docs_dimension_reduction=docs_dimension_reduction,
         )
 
     def compute_projection_embeddings(

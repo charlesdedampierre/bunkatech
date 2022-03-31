@@ -6,7 +6,7 @@ from PIL import Image
 
 pd.options.mode.chained_assignment = None
 
-instructions = toml.load("instructions.toml")
+instructions = toml.load("streamlit_instructions.toml")
 
 st.set_page_config(
     layout="wide",

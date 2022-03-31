@@ -8,10 +8,17 @@ This README.md file has been created with the help of the fantastic work of [Maa
 
 ## Installation
 
-First, Create a virtual environement to protect you other environements. Bunka has a lot of packages and a lot of depedencies.
+First, Create a virtual environement to protect you other environements. Bunka has a lot of packages and a lot of depedencies. Once created, activate it
 
 ```bash
 python -m venv bunka
+source bunka/bin/activate
+```
+
+If you wish to deactivate the venv, type the following:
+
+```bash
+deactivate
 ```
 
 Clone the repository

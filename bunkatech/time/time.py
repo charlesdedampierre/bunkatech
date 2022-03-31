@@ -37,6 +37,9 @@ class SemanticsTrends(BasicSemantics):
         terms_path=None,
         terms_embeddings_path=None,
         docs_embeddings_path=None,
+        terms_multiprocessing=True,
+        docs_multiprocessing=True,
+        docs_dimension_reduction=5,
     ) -> None:
 
         BasicSemantics.__init__(
@@ -64,12 +67,15 @@ class SemanticsTrends(BasicSemantics):
             terms_embedding_model=terms_embedding_model,
             docs_embedding_model=docs_embedding_model,
             language=language,
+            terms_multiprocessing=terms_multiprocessing,
+            docs_multiprocessing=docs_multiprocessing,
+            docs_dimension_reduction=docs_dimension_reduction,
         )
 
     def fit(self, date_var):
         # Only Fit on the date
         self.date_var = date_var
-        self.data["date_format"] = pd.to_datetime(self.data[self.date_var])
+        self.data["date_format"] = self.data[self.date_var]
 
     def moving_average_comparison(
         self,
