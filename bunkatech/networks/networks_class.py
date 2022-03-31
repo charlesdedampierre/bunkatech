@@ -38,8 +38,11 @@ class SemanticNetworks(BasicSemantics):
         docs_embedding_model="tfidf",
         language="en",
         terms_path=None,
+        docs_dimension_reduction=5,
         terms_embeddings_path=None,
         docs_embeddings_path=None,
+        terms_multiprocessing=True,
+        docs_multiprocessing=True,
     ) -> None:
 
         BasicSemantics.__init__(
@@ -67,6 +70,9 @@ class SemanticNetworks(BasicSemantics):
             terms_embedding_model=terms_embedding_model,
             docs_embedding_model=docs_embedding_model,
             language=language,
+            terms_multiprocessing=terms_multiprocessing,
+            docs_multiprocessing=docs_multiprocessing,
+            docs_dimension_reduction=docs_dimension_reduction,
         )
 
     def fit_draw(

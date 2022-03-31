@@ -43,6 +43,8 @@ class TopicModeling(BasicSemantics):
         terms_embeddings_path=None,
         docs_embeddings_path=None,
         docs_dimension_reduction=5,
+        terms_multiprocessing=True,
+        docs_multiprocessing=True,
     ) -> None:
 
         BasicSemantics.__init__(
@@ -71,6 +73,8 @@ class TopicModeling(BasicSemantics):
             docs_embedding_model=docs_embedding_model,
             language=language,
             docs_dimension_reduction=docs_dimension_reduction,
+            terms_multiprocessing=terms_multiprocessing,
+            docs_multiprocessing=docs_multiprocessing,
         )
         """if self.date_var is not None:
 

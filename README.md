@@ -8,10 +8,28 @@ This README.md file has been created with the help of the fantastic work of [Maa
 
 ## Installation
 
-first, install the necessary packages:
+First, Create a virtual environement to protect you other environements. Bunka has a lot of packages and a lot of depedencies.
+
+```bash
+python -m venv bunka
+```
+
+Clone the repository
+
+```bash
+git clone https://github.com/charlesdedampierre/bunkatech.git
+```
+
+Then, install all the necessary packages:
 
 ```bash
 pip install requirements.txt
+```
+
+Load the main semantics model
+
+```bash
+python -m spacy download en_core_web_sm
 ```
 
 In order install the package locally on your marchine, creates the python package using setup.py and install it trought pip in your local package repository.
