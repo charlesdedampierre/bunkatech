@@ -6,9 +6,11 @@ import plotly.express as px
 import warnings
 import umap
 
-from .semantics.extract_terms import extract_terms_df
+from .semantics.extract_terms_old import extract_terms_df
 from .semantics.indexer import indexer
 from .semantics.get_embeddings import get_embeddings
+from .semantics.semantic_folding import semantic_folding
+
 
 from .hierarchical_clusters import hierarchical_clusters
 from .hierarchical_clusters_label import hierarchical_clusters_label
@@ -17,15 +19,18 @@ from .visualization.make_bubble import wrap_by_word
 from .visualization.sankey import make_sankey
 from .visualization.topics_treemap import topics_treemap
 from .visualization.topics_sunburst import topics_sunburst
+from .visualization.topics_nested import topics_nested
+
 
 from .networks.centroids import find_centroids
+from .search.fts5_search import fts5_search
 
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 pd.options.mode.chained_assignment = None
 
 
-class nested_topic_modeling:
+class NestedTopicModeling:
     def __init__(self) -> None:
         pass
 
@@ -37,8 +42,10 @@ class nested_topic_modeling:
         sample_size: int = 500,
         sample_terms: int = 1000,
         embeddings_model: str = "tfidf",
+        folding=None,
         ngrams=(1, 2),
         ents=False,
+        ncs=False,
         language="en",
         db_path=".",
     ):
@@ -47,12 +54,23 @@ class nested_topic_modeling:
         df = df[df[text_var].notna()]  # cautious not to let any nan
         df = df.reset_index(drop=True)
 
-        embeddings_reduced, _ = get_embeddings(
-            df,
-            field=text_var,
-            model=embeddings_model,
-            model_path="distiluse-base-multilingual-cased-v1",  # workds if sbert is chosen
-        )
+        if folding is not None:
+
+            embeddings_reduced = semantic_folding(
+                folding,
+                df,
+                text_var=text_var,
+                model=embeddings_model,
+                dimension_folding=5,
+                folding_only=True,
+            )
+        else:
+            embeddings_reduced, _ = get_embeddings(
+                df,
+                field=text_var,
+                model=embeddings_model,
+                model_path="distiluse-base-multilingual-cased-v1",  # workds if sbert is chosen
+            )
 
         # Create Nested clusters.
         df_emb = pd.DataFrame(embeddings_reduced)
@@ -66,7 +84,7 @@ class nested_topic_modeling:
             sample_size=sample_terms,
             ngs=True,  # ngrams
             ents=ents,  # entities
-            ncs=False,  # nouns
+            ncs=ncs,  # nouns
             drop_emoji=True,
             remove_punctuation=False,
             ngrams=ngrams,
@@ -99,15 +117,6 @@ class nested_topic_modeling:
         h_clusters_label = h_clusters_label.rename(columns={"main form": "lemma"})
         h_clusters_names = hierarchical_clusters_label(h_clusters_label)
 
-        # Make treemap
-        treemap = topics_treemap(nested_topics=h_clusters_names, index_var=index_var)
-
-        # Make sunburst
-        sunburst = topics_sunburst(nested_topics=h_clusters_names, index_var=index_var)
-
-        # Make Sankey Diagram
-        sankey = make_sankey(h_clusters_names, field="Dataset", index_var=index_var)
-
         # Save the arguments in the self
         self.df = df
         self.text_var = text_var
@@ -125,12 +134,106 @@ class nested_topic_modeling:
         self.embeddings_raw = embeddings_reduced
         self.embeddings = df_emb.drop("level_0", axis=1)
 
-        self.treemap = treemap
-        self.sunburst = sunburst
-        self.sankey = sankey
         self.indexed_terms = df_indexed_full
 
         return self
+
+    def make_nested_maps(
+        self,
+        size_rule="equal_size",
+        map_type="treemap",
+        width=1000,
+        height=1000,
+        query=None,
+    ):
+        """Create Maps to display information
+
+        Parameters
+        ----------
+        size_rule : str, optional
+            _description_, by default "equal_size"
+        map_type : str, optional
+            _description_, by default "treemap"
+        width : int, optional
+            _description_, by default 1000
+        height : int, optional
+            _description_, by default 1000
+        query : _type_, optional
+            _description_, by default None
+
+        Returns
+        -------
+        _type_
+            _description_
+
+        Raises
+        ------
+        ValueError
+            _description_
+        """
+
+        if query is not None:
+            docs = self.df[self.text_var].to_list()
+            # Make the term search among the documents
+            res_search = fts5_search(query, docs)
+
+            # Merge the results with the text_var
+            df_cluster_names_filter = pd.merge(
+                self.df, res_search, left_on=self.text_var, right_on="docs"
+            )
+
+            # Merge the ids with the nested clusters if information
+            df_cluster_names_filter = pd.merge(
+                self.h_clusters_names,
+                df_cluster_names_filter[[self.index_var]],
+                on=self.index_var,
+            )
+
+            # group by the more nested topics
+            count_search = (
+                df_cluster_names_filter.groupby(["lemma_2"])
+                .agg(score_norm=(self.index_var, "count"))
+                .reset_index()
+            )
+        else:
+            count_search = None
+
+        if map_type == "treemap":
+            # Make treemap
+            map = topics_nested(
+                nested_topics=self.h_clusters_names,
+                index_var=self.index_var,
+                size_rule=size_rule,
+                width=width,
+                height=height,
+                count_search=count_search,
+                map_type="treemap",
+            )
+
+        elif map_type == "sunburst":
+            # Make sunburst
+            map = topics_nested(
+                nested_topics=self.h_clusters_names,
+                index_var=self.index_var,
+                size_rule=size_rule,
+                width=width,
+                height=height,
+                count_search=count_search,
+                map_type="sunburst",
+            )
+
+        elif map_type == "sankey":
+            # Make Sankey Diagram
+            map = make_sankey(
+                self.h_clusters_names, field="Dataset", index_var=self.index_var
+            )
+
+        else:
+            raise ValueError(
+                f' "{map_type}" is not a correct value. Please enter a correct map_type value such as "Treemap", "Sunburst" or "Sankey"'
+            )
+
+        return map
 
     def visualize_embeddings(
         self, nested_level: int = 0, width: int = 1000, height: int = 1000

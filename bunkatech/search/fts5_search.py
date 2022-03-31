@@ -4,7 +4,7 @@ import os
 
 
 def fts5_search(
-    search_term: str, docs: list, case_sensitive: bool = False
+    search_queries: list, docs: list, case_sensitive: bool = False
 ) -> pd.DataFrame:
     """The function search a query in a list of documents and outputs
     all the documents containing the the query
@@ -24,8 +24,7 @@ def fts5_search(
         Documents containing the query
     """
 
-    search_term = [search_term]
-    terms = [x for x in search_term if not x.startswith('"')]
+    terms = [x for x in search_queries if not x.startswith('"')]
     terms = [x for x in terms if not x.endswith('"')]
     terms = [x for x in terms if not x.startswith("'")]
     terms = [x for x in terms if not x.endswith("'")]

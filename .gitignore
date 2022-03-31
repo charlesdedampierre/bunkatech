@@ -1,14 +1,27 @@
-# Project specific
+# venv
 
+update.sh
+commit.sh
+ignore.sh
+
+
+test/
+# Project specific
 saved_graph/
 data_scraped/
 *.html
+.vscode/
+work_in_progress/
+documentation/
+!data/demo_data/*
+!setup.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-*.csv
+#*.csv
+.DS_Store
 
 
 # C extensions
@@ -36,7 +49,6 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-*.sh
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
