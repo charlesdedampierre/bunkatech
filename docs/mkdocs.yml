@@ -1,0 +1,4 @@
+site_name: Bunka Documentation
+
+theme:
+  name: material
