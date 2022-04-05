@@ -432,6 +432,7 @@ class Origami(BasicSemantics):
             width=width,
             xaxis_title="<--- " + projection_str_1 + " --->",
         )
+        fig.update_yaxes(showticklabels=False)
 
         self.final_proj = final_proj
 
