@@ -66,6 +66,7 @@ module_choice = st.sidebar.selectbox(
         "Semantic Nestedness",
         "Semantic Networks",
         "Top Documents",
+        "Bourdieu Projection",
         "Temporal Trends",
         "Deep Dive",
     ],
@@ -92,17 +93,18 @@ if module_choice == "Semantic Origamis":
     with col2:
         if left_axis and right_axis:
             # Create a way to enter different words
-            fig = bunka.origami_projection_unique(
-                left_axis=left_axis.split(","),
-                right_axis=right_axis.split(","),
-                height=500,
-                width=1000,
-                type=projection_item,
-                dispersion=True,
-                barometer=True,
-            )
+            with st.spinner("Processing the request...."):
+                fig = bunka.origami_projection_unique(
+                    left_axis=left_axis.split(","),
+                    right_axis=right_axis.split(","),
+                    height=500,
+                    width=1000,
+                    type=projection_item,
+                    dispersion=True,
+                    barometer=True,
+                )
 
-            st.plotly_chart(fig)
+                st.plotly_chart(fig)
 
 if module_choice == "Semantic Nestedness":
     # reset everytime we do this process
@@ -133,15 +135,16 @@ if module_choice == "Semantic Nestedness":
             query = None
 
     with col2:
-        fig = bunka.nested_maps(
-            size_rule=map_size,
-            map_type=map_type,
-            width=1000,
-            height=1000,
-            query=query,
-        )
+        with st.spinner("Processing the request...."):
 
-        st.plotly_chart(fig)
+            fig = bunka.nested_maps(
+                size_rule=map_size,
+                map_type=map_type,
+                width=1000,
+                height=1000,
+                query=query,
+            )
+            st.plotly_chart(fig)
 
 
 if module_choice == "Semantic Networks":
@@ -158,33 +161,70 @@ if module_choice == "Semantic Networks":
         n_neighbours = st.number_input(label="n_neighbours", value=10)
 
     with col2:
-        fig = bunka.fit_draw(
-            variables=["main form"],
-            top_n=top_n,
-            global_filter=global_filter,
-            n_neighbours=n_neighbours,
-            method="force_directed",
-            n_cluster=n_cluster,
-            bin_number=30,
-            black_hole_force=black_hole_force,
-            color="community",
-            size="size",
-            symbol="entity",
-            textfont_size=9,
-            edge_size=1,
-            height=1000,
-            width=1000,
-            template="plotly_dark",
-        )
+        with st.spinner("Processing the request...."):
+            fig = bunka.fit_draw(
+                variables=["main form"],
+                top_n=top_n,
+                global_filter=global_filter,
+                n_neighbours=n_neighbours,
+                method="force_directed",
+                n_cluster=n_cluster,
+                bin_number=30,
+                black_hole_force=black_hole_force,
+                color="community",
+                size="size",
+                symbol="entity",
+                textfont_size=9,
+                edge_size=1,
+                height=1000,
+                width=1000,
+                template="plotly_dark",
+            )
 
-        st.plotly_chart(fig)
+            st.plotly_chart(fig)
 
 if module_choice == "Temporal Trends":
     # reset everytime we do this process
-    bunka.data = bunka.data_initial.copy()
-    st.subheader("Temporal Trends")
-    fig = bunka.temporal_topics_nested(date_var="date", normalize_y=False)
-    st.plotly_chart(fig)
+    with st.spinner("Processing the request...."):
+        bunka.data = bunka.data_initial.copy()
+        st.subheader("Temporal Trends")
+        fig = bunka.temporal_topics_nested(date_var="date", normalize_y=False)
+        st.plotly_chart(fig)
+
+if module_choice == "Bourdieu Projection":
+    # reset everytime we do this process
+    st.subheader("Bourdieu Projection")
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        h_axis = st.text_input(
+            label="Enter the terms to describe the horizontal axis",
+            value="past, future",
+        )
+        v_axis = st.text_input(
+            label="Enter the terms to describe the vertical axis", value="good, bad"
+        )
+
+        type = st.selectbox(
+            label="Chose the Level of granularity",
+            options=["terms", "documents"],
+            index=0,
+        )
+        regression = st.selectbox(
+            label="Display Linear Regression", options=["False", "True"], index=0
+        )
+    with col2:
+        with st.spinner("Processing the request...."):
+
+            fig = bunka.origami_projection(
+                projection_1=h_axis.split(","),
+                projection_2=v_axis.split(","),
+                height=1000,
+                width=1000,
+                regression=regression,
+                type=type,
+            )
+
+            st.plotly_chart(fig)
 
 
 if module_choice == "Top Documents":
@@ -246,21 +286,23 @@ if module_choice == "Deep Dive":
         options=[
             "Semantic Origamis",
             "Semantic Networks",
-            "Top Documents",
+            "Sample Documents",
             "Top Terms",
         ],
         index=1,
     )
 
-    if module_choice_deep_dive == "Top Documents":
-        st.subheader("Top Documents")
-        top_docs = bunka.get_top_popular_docs(top_n=10)
-        docs = top_docs[bunka.text_var]
-        popularity = top_docs[bunka.popularity_var]
-        for doc, pop in zip(docs, popularity):
+    if module_choice_deep_dive == "Sample Documents":
+        st.subheader("Sample Documents")
+        # top_docs = bunka.get_top_popular_docs(top_n=10)
+        sample_data = bunka.data.sample(10)
+        docs = sample_data[bunka.text_var]
+        # docs = top_docs[bunka.text_var]
+        # popularity = top_docs[bunka.popularity_var]
+        for doc in docs:
             st.info(doc)
-            st.success("popularity score: " + str(pop))
-            st.text("")
+            # st.success("popularity score: " + str(pop))
+            # st.text("")
 
     if module_choice_deep_dive == "Semantic Origamis":
         st.title("Semantic Origamis")
@@ -283,17 +325,18 @@ if module_choice == "Deep Dive":
         with col2:
             if right_axis and left_axis:
                 # Create a way to enter different words
-                fig = bunka.origami_projection_unique(
-                    left_axis=left_axis.split(","),
-                    right_axis=right_axis.split(","),
-                    height=500,
-                    width=1000,
-                    type=projection_item,
-                    dispersion=True,
-                    barometer=True,
-                )
+                with st.spinner("Processing the request...."):
+                    fig = bunka.origami_projection_unique(
+                        left_axis=left_axis.split(","),
+                        right_axis=right_axis.split(","),
+                        height=500,
+                        width=1000,
+                        type=projection_item,
+                        dispersion=True,
+                        barometer=True,
+                    )
 
-                st.plotly_chart(fig)
+                    st.plotly_chart(fig)
 
     if module_choice_deep_dive == "Semantic Networks":
         st.title("Semantic Networks")
@@ -307,29 +350,66 @@ if module_choice == "Deep Dive":
             n_neighbours = st.number_input(label="n_neighbours", value=10)
 
         with col2:
-            fig = bunka.fit_draw(
-                variables=["main form"],
-                top_n=top_n,
-                global_filter=global_filter,
-                n_neighbours=n_neighbours,
-                method="force_directed",
-                n_cluster=n_cluster,
-                bin_number=30,
-                black_hole_force=black_hole_force,
-                color="community",
-                size="size",
-                symbol="entity",
-                textfont_size=9,
-                edge_size=1,
-                height=1000,
-                width=1000,
-                template="plotly_dark",
-            )
+            with st.spinner("Processing the request...."):
+                fig = bunka.fit_draw(
+                    variables=["main form"],
+                    top_n=top_n,
+                    global_filter=global_filter,
+                    n_neighbours=n_neighbours,
+                    method="force_directed",
+                    n_cluster=n_cluster,
+                    bin_number=30,
+                    black_hole_force=black_hole_force,
+                    color="community",
+                    size="size",
+                    symbol="entity",
+                    textfont_size=9,
+                    edge_size=1,
+                    height=1000,
+                    width=1000,
+                    template="plotly_dark",
+                )
 
-            st.plotly_chart(fig)
+                st.plotly_chart(fig)
 
     if module_choice_deep_dive == "Top Terms":
         st.title("Top Terms")
         terms = bunka.df_indexed.reset_index(drop=True)
         terms = terms[["main form"]].drop_duplicates().reset_index(drop=True).head(100)
         st.dataframe(terms, height=1000)
+
+    if module_choice == "Bourdieu Projection":
+        print("Hello")
+        # reset everytime we do this process
+        st.subheader("Bourdieu Projection")
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            h_axis = st.text_input(
+                label="Enter the terms to describe the horizontal axis",
+                value="past, future",
+            )
+            v_axis = st.text_input(
+                label="Enter the terms to describe the vertical axis", value="good, bad"
+            )
+
+            type = st.selectbox(
+                label="Chose the Level of granularity",
+                options=["terms", "documents"],
+                index=0,
+            )
+            regression = st.selectbox(
+                label="Display Linear Regression", options=["False", "True"], index=0
+            )
+        with col2:
+            with st.spinner("Processing the request...."):
+
+                fig = bunka.origami_projection(
+                    projection_1=h_axis.split(","),
+                    projection_2=v_axis.split(","),
+                    height=1000,
+                    width=1000,
+                    regression=regression,
+                    type=type,
+                )
+
+                st.plotly_chart(fig)

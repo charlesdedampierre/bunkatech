@@ -13,14 +13,20 @@ This README.md file has been created with the help of the fantastic work of [Maa
 First, Create a virtual environement to protect you other environements. Bunka has a lot of packages and a lot of depedencies. Once created, activate it
 
 ```bash
-python -m venv bunka
-source bunka/bin/activate
+conda create -n bunka_env python=3.8 
+conda activate bunka_env
 ```
 
 If you wish to deactivate the venv, type the following:
 
 ```bash
 deactivate
+```
+
+Install jupyter-lab on your environment
+
+```bash
+pip install jupyterlab
 ```
 
 Clone the repository and enter it. The cloning process may take few minutes.
