@@ -17,12 +17,6 @@ conda create -n bunka_env python=3.8
 conda activate bunka_env
 ```
 
-If you wish to deactivate the venv, type the following:
-
-```bash
-deactivate
-```
-
 Install jupyter-lab on your environment
 
 ```bash
