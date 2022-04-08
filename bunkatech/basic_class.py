@@ -52,7 +52,7 @@ class BasicSemantics:
         docs_embedding=True,
         sample_size_terms=500,
         terms_limit=500,
-        terms_multiprocessing=True,
+        terms_multiprocessing=False,
         terms_ents=True,
         terms_ngrams=(1, 2),
         terms_ncs=True,
@@ -61,7 +61,7 @@ class BasicSemantics:
         terms_embedding_model="all-MiniLM-L6-v2",
         docs_embedding_model="tfidf",
         docs_dimension_reduction=None,
-        docs_multiprocessing=True,
+        docs_multiprocessing=False,
         language="en",
     ):
 
