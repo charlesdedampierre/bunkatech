@@ -2,6 +2,12 @@ from multiprocessing import Pool
 from fairseq.models.roberta import CamembertModel
 import pandas as pd
 from tqdm import tqdm
+import logging, sys
+
+logging.disable(sys.maxsize)
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("numexpr").setLevel(logging.WARNING)
+
 
 model_path = "camembert-base"
 camembert = CamembertModel.from_pretrained(model_path)
@@ -30,7 +36,9 @@ def camembert_sentence_embedding(sentence):
     last_layer_features = camembert.extract_features(tokens)[0].detach().numpy()
 
     # The sentence is the mean of the embeddings
-    return pd.DataFrame(last_layer_features).mean()
+    res = pd.DataFrame(last_layer_features).mean()
+
+    return res
 
 
 def camembert_embedding(texts):
@@ -44,14 +52,25 @@ def camembert_embedding(texts):
 
 if __name__ == "__main__":
 
-    data = pd.read_excel(
+    """data = pd.read_excel(
         "/Users/charlesdedampierre/Desktop/SciencePo Projects/shaping-ai/labeling/SHAI-LABELS-ROUND-1.xlsx"
     )
 
     data["bindex"] = data.index
     data = data.sample(100).reset_index(drop=True)
-    texts = data["title_lead"].values
+    texts = data["title_lead"].values"""
+
+    path = "/Users/charlesdedampierre/Desktop/SciencePo Projects/shaping-ai/search_test"
+    df_index = pd.read_csv(
+        path + "/df_index.csv",
+        index_col=[0],
+    )
+    texts = df_index.reset_index()["text"].drop_duplicates().dropna().to_list()[:100]
+
+    print(len(texts))
 
     df_embeddings = camembert_embedding(texts)
-
+    df_embeddings["text"] = texts
+    df_embeddings = df_embeddings.set_index("text")
+    df_embeddings.to_csv(path + "/terms_embeddings_camembert.csv")
     print(df_embeddings)
