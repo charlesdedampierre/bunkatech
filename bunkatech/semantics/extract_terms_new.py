@@ -1,12 +1,11 @@
 import pandas as pd
-from fuzzywuzzy import fuzz, process
 from tqdm import tqdm
-import numpy as np
+import pickle
+
 
 tqdm.pandas()
 from multiprocessing import Pool
-
-multiprocessing_pools = 8
+import multiprocessing
 
 import textacy
 import textacy.preprocessing
@@ -17,12 +16,6 @@ from functools import partial
 import warnings
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
-
-from sentence_transformers import util
-from sklearn.metrics.pairwise import cosine_similarity
-import bamboolib
-
-from sentence_transformers import SentenceTransformer
 
 preproc = textacy.preprocessing.make_pipeline(
     textacy.preprocessing.normalize.unicode,
@@ -36,8 +29,16 @@ preproc = textacy.preprocessing.make_pipeline(
 )
 
 
+def from_dict_to_frame(indexed_dict):
+    data = {k: [v] for k, v in indexed_dict.items()}
+    df = pd.DataFrame.from_dict(data).T
+    df.columns = ["text"]
+    df = df.explode("text")
+    return df
+
+
 def extract_terms(
-    tuple,
+    tuple,  # (index, text)
     ngs=True,
     ents=True,
     ncs=False,
@@ -49,10 +50,10 @@ def extract_terms(
     language="en",
 ):
 
-    index = tuple(1)
-    text = tuple(0)
+    index = tuple[0]
+    text = tuple[1]
 
-    prepro_text = preproc(text)
+    prepro_text = preproc(str(text))
     if drop_emoji == True:
         prepro_text = textacy.preprocessing.replace.emojis(prepro_text, repl="")
 
@@ -66,7 +67,7 @@ def extract_terms(
     elif language == "fr":
         lang = textacy.load_spacy_lang("fr_core_news_lg", disable=())
 
-    doc = textacy.make_spacy_doc(text, lang=lang)
+    doc = textacy.make_spacy_doc(prepro_text, lang=lang)
 
     terms = []
 
@@ -128,8 +129,8 @@ def extract_terms_df(
     ngs=True,
     ents=True,
     ncs=False,
-    multiprocessing=True,
-    sample_size=2000,
+    multiprocess=True,
+    sample_size=100000,
     drop_emoji=True,
     ngrams=(2, 2),
     remove_punctuation=True,
@@ -141,12 +142,12 @@ def extract_terms_df(
     data = data[data[text_var].notna()]
     data = data.sample(min(sample_size, len(data)))
 
-    sentences = data["text"].to_list()
+    sentences = data[text_var].to_list()
     indexes = data.index.to_list()
     inputs = [(x, y) for x, y in zip(indexes, sentences)]
 
-    if multiprocessing is True:
-        with Pool(multiprocessing_pools) as p:
+    if multiprocess is True:
+        with Pool(multiprocessing.cpu_count() - 2) as p:
             res = list(
                 tqdm(
                     p.imap(
@@ -170,17 +171,29 @@ def extract_terms_df(
 
         final_res = pd.concat([x for x in res])
 
-    """res = pd.DataFrame()
-    for x in tqdm(range(len(data)), total=len(data)):
+    else:
+        res = list(
+            tqdm(
+                map(
+                    partial(
+                        extract_terms,
+                        ngs=ngs,
+                        ents=ents,
+                        ncs=ncs,
+                        drop_emoji=drop_emoji,
+                        remove_punctuation=remove_punctuation,
+                        ngrams=ngrams,
+                        include_pos=include_pos,
+                        include_types=include_types,
+                        language=language,
+                    ),
+                    inputs,
+                ),
+                total=len(inputs),
+            )
+        )
 
-        text = data.iloc[x][text_var]
-        index = data.iloc[x][index_var]
-
-        df = extract_terms(index=index, text=text, ngs=ngs, ents=ents, ncs=ncs)
-        res = res.append(df)
-    """
-
-    func = lambda x: " | ".join(x)
+        final_res = pd.concat([x for x in res])
 
     terms = (
         final_res.groupby(["text", "lemma", "ent", "ngrams"])
@@ -188,8 +201,52 @@ def extract_terms_df(
         .reset_index()
     )
 
+    # duplicates to get rid of
+    terms = terms.sort_values(["text", "ent"]).reset_index()
+    terms = terms.drop_duplicates(["text"], keep="first")
+    terms = terms.sort_values("count_terms", ascending=False)
     terms = terms.set_index("text")
 
-    df_index = final_res[["text", index_var]].drop_duplicates().set_index("text")
+    terms_indexed = (
+        final_res[["text", "text_index"]].drop_duplicates().set_index("text")
+    )
+    terms_indexed = terms_indexed.rename(columns={"text_index": index_var})
 
-    return terms, df_index
+    indexed_dict = (
+        terms_indexed.reset_index().groupby(index_var)["text"].apply(list).to_dict()
+    )
+
+    return terms, indexed_dict
+
+
+if __name__ == "__main__":
+    data = pd.read_csv(
+        "/Users/charlesdedampierre/Desktop/SciencePo Projects/shaping-ai/demo_day/SHAI-CORPUS-MODEL-ALL-R2.csv",
+        sep=";",
+    )
+    data = data.set_index("unique_id")
+
+    terms, terms_indexed = extract_terms_df(
+        data,
+        text_var="content",
+        index_var="unique_id",
+        ngs=True,
+        ents=True,
+        ncs=False,
+        multiprocess=True,
+        sample_size=100000,
+        drop_emoji=True,
+        ngrams=(1, 2),
+        remove_punctuation=False,
+        include_pos=["NOUN", "PROPN", "ADJ", "VERB"],
+        include_types=["PER", "ORG", "LOC"],
+        language="fr",
+    )
+
+    path = "/Users/charlesdedampierre/Desktop/SciencePo Projects/shaping-ai/demo_day"
+    terms.to_csv(path + "/terms.csv")
+
+    with open(path + "/terms_indexed.pickle", "wb") as handle:
+        pickle.dump(terms_indexed, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    # terms_indexed.to_csv(path + "/terms_indexed.csv")
