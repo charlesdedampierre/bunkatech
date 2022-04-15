@@ -228,7 +228,7 @@ if __name__ == "__main__":
 
     terms, terms_indexed = extract_terms_df(
         data,
-        text_var="content",
+        text_var="title_clean",
         index_var="unique_id",
         ngs=True,
         ents=True,
@@ -243,10 +243,12 @@ if __name__ == "__main__":
         language="fr",
     )
 
-    path = "/Users/charlesdedampierre/Desktop/SciencePo Projects/shaping-ai/demo_day"
+    path = (
+        "/Users/charlesdedampierre/Desktop/SciencePo Projects/shaping-ai/demo_day/title"
+    )
     terms.to_csv(path + "/terms.csv")
 
     with open(path + "/terms_indexed.pickle", "wb") as handle:
         pickle.dump(terms_indexed, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    # terms_indexed.to_csv(path + "/terms_indexed.csv")
+    # terms_indexed.to_csv(path + "/terms_indexed.csv")"""
