@@ -5,13 +5,9 @@ import numpy as np
 def specificity(df: pd.DataFrame, X: str, Y: str, Z: str, top_n: int = 50):
 
     if Z is None:
-        Z = "count_terms"
+        Z = "count_values"
         df[Z] = 1
-        group = (
-            df.groupby(["cluster", "main form"])
-            .agg(count_terms=(Z, "sum"))
-            .reset_index()
-        )
+        group = df.groupby([X, Y]).agg(count_values=(Z, "sum")).reset_index()
         cont = group.pivot(index=X, columns=Y, values=Z).fillna(0).copy()
 
     else:
