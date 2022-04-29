@@ -469,3 +469,6 @@ class Origami(BasicSemantics):
         fin[self.text_var] = fin[self.text_var] + "<br><br>" + fin["term_valence"]
 
         return fin
+
+
+

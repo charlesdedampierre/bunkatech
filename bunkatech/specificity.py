@@ -5,9 +5,11 @@ import numpy as np
 def specificity(df: pd.DataFrame, X: str, Y: str, Z: str, top_n: int = 50):
 
     if Z is None:
-        Z = "count_all"
-        group = df.groupby([X, Y])[X].count().rename(Z).reset_index()
+        Z = "count_values"
+        df[Z] = 1
+        group = df.groupby([X, Y]).agg(count_values=(Z, "sum")).reset_index()
         cont = group.pivot(index=X, columns=Y, values=Z).fillna(0).copy()
+
 
     else:
         group = df.groupby([X, Y])[Z].sum().reset_index()

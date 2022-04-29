@@ -91,8 +91,8 @@ bunka = Bunka(data = data,
                 docs_dimension_reduction = 5,
                 terms_embeddings_path=None,
                 docs_embeddings_path=None,
-                docs_multiprocessing = True,
-                terms_multiprocessing = True)
+                docs_multiprocessing = False,
+                terms_multiprocessing = False)
 
 
 # Extract the computed objects
