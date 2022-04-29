@@ -56,9 +56,7 @@ def indexer(docs: list, terms: list, db_path="."):
 
     c.execute("DROP table IF EXISTS abstractsearch;")
     c.execute("DROP table IF EXISTS uniqueterms;")
-    conn.close()
 
-    conn.close()
 
     df_docs_table = pd.read_sql_query("SELECT * FROM docs", conn)
     df_docs_table = df_docs_table.rename(columns={"data": "docs"})
@@ -70,5 +68,9 @@ def indexer(docs: list, terms: list, db_path="."):
     final["words"] = final["words"].apply(lambda x: x.strip('"'))
 
     os.remove(db_path + "/database.db")
+    conn.close()
+
+    conn.close()
 
     return final
+
