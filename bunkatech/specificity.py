@@ -10,6 +10,7 @@ def specificity(df: pd.DataFrame, X: str, Y: str, Z: str, top_n: int = 50):
         group = df.groupby([X, Y]).agg(count_values=(Z, "sum")).reset_index()
         cont = group.pivot(index=X, columns=Y, values=Z).fillna(0).copy()
 
+
     else:
         group = df.groupby([X, Y])[Z].sum().reset_index()
         cont = group.pivot(index=X, columns=Y, values=Z).fillna(0).copy()
