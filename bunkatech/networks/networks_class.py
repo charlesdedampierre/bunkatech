@@ -339,7 +339,7 @@ class SemanticNetworks(BasicSemantics):
             embeddings = np.array([model.wv[x] for x in nodes])
 
             # Get the 2D embeddings to display data
-            tsne = TSNE(n_components=2)
+            tsne = TSNE(n_components=2, random_state=42)
             embeddings = tsne.fit_transform(embeddings)
             pos_ = {nodes[x]: embeddings[x] for x in range(len(nodes))}
 
