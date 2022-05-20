@@ -11,6 +11,7 @@ from node2vec import Node2Vec
 import plotly.graph_objects as go
 from matplotlib import cm
 from ..basic_class import BasicSemantics
+from logging import getLogger, WARNING
 
 
 class SemanticNetworks(BasicSemantics):
@@ -273,6 +274,11 @@ class SemanticNetworks(BasicSemantics):
 
             return G
 
+        #word2vec used in node2vec has loads of logger events that can't be easily reduced by setting low verbose,
+        #instead we'll reduce the overall logging level
+        root_logger = getLogger()
+        root_logger.setLevel(WARNING)
+        
         # Create Graph Object
         G = nx.from_pandas_edgelist(
             self.new_edge, source="source", target="target", edge_attr="weight"
@@ -315,7 +321,7 @@ class SemanticNetworks(BasicSemantics):
 
         elif method == "node2vec":
 
-            node2vec = Node2Vec(G, dimensions=700, workers=multiprocessing.cpu_count())
+            node2vec = Node2Vec(G, dimensions=700, workers=multiprocessing.cpu_count(), seed=42)
             model = node2vec.fit(window=30, min_count=1)
             nodes = list(map(str, G.nodes()))
             embeddings = np.array([model.wv[x] for x in nodes])
@@ -333,7 +339,7 @@ class SemanticNetworks(BasicSemantics):
             G = add_black_holes(G, density=density)
 
             # Re-compute to add the new nodes and get their
-            node2vec = Node2Vec(G, dimensions=700, workers=multiprocessing.cpu_count())
+            node2vec = Node2Vec(G, dimensions=700, workers=multiprocessing.cpu_count(), seed=42)
             model = node2vec.fit(window=30, min_count=1)
             nodes = list(map(str, G.nodes()))
             embeddings = np.array([model.wv[x] for x in nodes])
