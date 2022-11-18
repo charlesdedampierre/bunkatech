@@ -48,6 +48,11 @@ git clone https://github.com/charlesdedampierre/bunkatech.git
 cd bunkatech/
 ```
 
+```bash
+poetry shell #if not already activated
+make jupyter
+```
+
 ```python
 import bunkatech
 ```
