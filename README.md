@@ -10,48 +10,43 @@ This README.md file has been created with the help of the fantastic work of [Maa
 
 ## Installation
 
-First, Create a virtual environement to protect you other environements. Bunka has a lot of packages and a lot of depedencies. Once created, activate it
+Create an environement using poetry to isolate the dependencies. This is very important given the fact that
+bunkatech uses a lot of dependencies
 
 ```bash
-conda create -n bunka_env python=3.8 
-conda activate bunka_env
+poetry init
 ```
 
-Install jupyter-lab on your environment
+in pyproject.toml, set python = "^3.8" and the use the following command to use python 3.8 as an interpreter.
+Then activate the environment.
 
 ```bash
-pip install jupyterlab
+poetry env use python3.8
+poetry shell
 ```
 
+Install the requirements using requirments.txt
+
+```bash
+pip install -r requirments.txt
+```
+
+Install some other specific packages
+
+```bash
+pip install sentence-transformers
+pip install gensim
+python -m spacy download en_core_web_sm
+python -m spacy download fr_core_news_lg
+```
+
+Once everything is installed, clone the repository
 Clone the repository and enter it. The cloning process may take few minutes.
 
 ```bash
 git clone https://github.com/charlesdedampierre/bunkatech.git
 cd bunkatech/
 ```
-
-Then, install all the necessary packages:
-
-```bash
-pip install -r requirements.txt
-```
-
-Load the main semantics model
-
-```bash
-python -m spacy download en_core_web_sm
-```
-
-In order install the package locally on your marchine, creates the python package using setup.py and install it trought pip in your local package repository.
-
-```bash
-pip install wheel
-python setup.py sdist bdist_wheel
-cd dist/
-pip install bunkatech-0.0.1.tar.gz
-```
-
-Once this step is over, the bunkatech package have been installed in your environment and can hence be called from anywhere using:
 
 ```python
 import bunkatech

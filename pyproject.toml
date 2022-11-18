@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "bunkatech"
+version = "0.1.0"
+description = ""
+authors = ["Charles De Dampierre <charles.de-dampierre@hec.edu>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+# pip install gensim after activating the shell
+# pip install sentence-transformers
+python = "^3.8"
+jupyterlab = "^3.5.0"
+pandas = "^1.5.1"
+community = "^1.0.0b1"
+matplotlib = "^3.6.2"
+networkx = "^2.8.8"
+textacy = "^0.12.0"
+umap-learn = "^0.5.3"
+plotly = "^5.11.0"
+node2vec = "^0.4.6"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
