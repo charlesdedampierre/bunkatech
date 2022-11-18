@@ -6,3 +6,6 @@ help:
 
 jupyter:
 	python -m jupyterlab
+
+streamlit:
+	python -m streamlit run app.py

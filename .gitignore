@@ -4,6 +4,8 @@ update.sh
 commit.sh
 ignore.sh
 setup.py
+poetry.lock
+pyproject.toml
 
 
 test/

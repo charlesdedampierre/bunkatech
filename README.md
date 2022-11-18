@@ -36,6 +36,8 @@ Install some other specific packages
 ```bash
 pip install sentence-transformers
 pip install gensim
+pip install streamlit
+
 python -m spacy download en_core_web_sm
 python -m spacy download fr_core_news_lg
 ```
@@ -184,7 +186,7 @@ Bunka modules can be used using the [Streamlit Package](https://streamlit.io/). 
 In order to call the platform locally on your machine.
 
 ```bash
-streamlit run app.py
+make streamlit
 ```
 
 ### Embeddings Models
