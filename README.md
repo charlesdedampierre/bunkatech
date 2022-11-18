@@ -53,10 +53,6 @@ poetry shell #if not already activated
 make jupyter
 ```
 
-```python
-import bunkatech
-```
-
 ## Getting Started with real examples
 
 For an in-depth overview of the features of BUNKAtech you can check the full documentation [here](https://docs.google.com/document/d/1CsJ-dhpm89e42hH7XPNuUtT1nAeCzC1kuIFEja_WyVs/edit) or you can follow along with one of the examples below using the Jupyter-Notebooks scripts contained in the examples/ repository.
