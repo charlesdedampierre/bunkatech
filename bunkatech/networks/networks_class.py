@@ -9,7 +9,9 @@ from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
 from node2vec import Node2Vec
 import plotly.graph_objects as go
+from matplotlib import cm
 from ..basic_class import BasicSemantics
+from logging import getLogger, WARNING
 
 
 class SemanticNetworks(BasicSemantics):
@@ -121,6 +123,7 @@ class SemanticNetworks(BasicSemantics):
             height_att=height,
             width_att=width,
             template=template,
+            bin_number=bin_number,
         )
 
         return fig
@@ -271,6 +274,11 @@ class SemanticNetworks(BasicSemantics):
 
             return G
 
+        #word2vec used in node2vec has loads of logger events that can't be easily reduced by setting low verbose,
+        #instead we'll reduce the overall logging level
+        root_logger = getLogger()
+        root_logger.setLevel(WARNING)
+        
         # Create Graph Object
         G = nx.from_pandas_edgelist(
             self.new_edge, source="source", target="target", edge_attr="weight"
@@ -313,7 +321,7 @@ class SemanticNetworks(BasicSemantics):
 
         elif method == "node2vec":
 
-            node2vec = Node2Vec(G, dimensions=700, workers=multiprocessing.cpu_count())
+            node2vec = Node2Vec(G, dimensions=700, workers=multiprocessing.cpu_count(), seed=42)
             model = node2vec.fit(window=30, min_count=1)
             nodes = list(map(str, G.nodes()))
             embeddings = np.array([model.wv[x] for x in nodes])
@@ -331,13 +339,13 @@ class SemanticNetworks(BasicSemantics):
             G = add_black_holes(G, density=density)
 
             # Re-compute to add the new nodes and get their
-            node2vec = Node2Vec(G, dimensions=700, workers=multiprocessing.cpu_count())
+            node2vec = Node2Vec(G, dimensions=700, workers=multiprocessing.cpu_count(), seed=42)
             model = node2vec.fit(window=30, min_count=1)
             nodes = list(map(str, G.nodes()))
             embeddings = np.array([model.wv[x] for x in nodes])
 
             # Get the 2D embeddings to display data
-            tsne = TSNE(n_components=2)
+            tsne = TSNE(n_components=2, random_state=42)
             embeddings = tsne.fit_transform(embeddings)
             pos_ = {nodes[x]: embeddings[x] for x in range(len(nodes))}
 
@@ -361,6 +369,7 @@ class SemanticNetworks(BasicSemantics):
         height_att=1000,
         width_att=1000,
         template="plotly_dark",
+        bin_number = 30,
     ):
         """Output a Graph
 
@@ -369,7 +378,8 @@ class SemanticNetworks(BasicSemantics):
             size (str, optional): chose in the nodes attribute the column_name for size. Defaults to "size".
             symbol ([type], optional): [description]. Defaults to None.
         """
-
+        
+        len(self.df_node["community"].unique())
         # Deal the size of the centroids (as they do not come from the nodes_attr)
         clusters = [
             self.G.nodes(data=True)[x]["community"] for x in list(self.G.nodes())
@@ -379,7 +389,8 @@ class SemanticNetworks(BasicSemantics):
         # Add the entities and the size
         df_nodes = self.nodes_attr.set_index("data")
         df_nodes["entity"] = df_nodes["entity"].astype("category").cat.codes
-        bin_number = 30
+        #bin  umber get's over writtern
+        # bin_number = 30
         df_nodes["size"] = pd.cut(
             df_nodes["size"].rank(method="first"),
             bin_number,
@@ -395,6 +406,16 @@ class SemanticNetworks(BasicSemantics):
         self.df_node = pd.merge(
             self.df_embeddings, self.df_node, left_index=True, right_index=True
         )
+        
+        #gen n_col=n_communities from cmap for plotting
+        colors = cm.get_cmap('gist_earth')
+        colors = colors(np.linspace(0,1,len(self.df_node["community"].unique())+2))*255
+        #get rid of black and white
+        colors = colors[1:-1]
+        #change opacity
+
+
+
 
         # For each edge, make an edge_trace, append to list
         edge_trace = []
@@ -416,11 +437,22 @@ class SemanticNetworks(BasicSemantics):
                 else:
                     # The bigger the node, the bigger the edge width
                     width = edge_size * self.G.edges()[edge]["weight"] ** 1.75
-
+                    width = 2;
+                
+                #depending on the edge value, change the color of the edge to a closser community
+                
+                if self.G.edges()[edge]["weight"] < 0.5:
+                    col = str('rgb' +  str(tuple(colors[self.G.nodes()[edge[0]][color]])))
+                else:
+                    col = str('rgb' +  str(tuple(colors[self.G.nodes()[edge[1]][color]])))
+                    
                 trace = go.Scatter(
                     x=[x0, x1, None],
                     y=[y0, y1, None],
-                    line=dict(width=width, color="cornflowerblue"),
+                    line=dict(width=width, color=col),
+                    opacity = 0.5,
+                    # line_color = col,
+                    # line_width = width,
                     mode="lines",
                 )
                 # fig.add_trace(trace)
@@ -431,8 +463,9 @@ class SemanticNetworks(BasicSemantics):
             x=[],
             y=[],
             text=[],
-            textposition="top center",
-            textfont_size=textfont_size,
+            textposition="top left",
+            # textfont_size=textfont_size,
+            textfont = dict(family="sans serif", size=[], color=[]),
             mode="markers+text",
             hoverinfo="text",
             marker=dict(color=[], size=[], line=None, opacity=[], symbol=[]),
@@ -447,17 +480,24 @@ class SemanticNetworks(BasicSemantics):
             x, y = self.pos_[node]
             node_trace["x"] += tuple([x])
             node_trace["y"] += tuple([y])
-            node_trace["marker"]["color"] += tuple([self.G.nodes()[node][color]])
+            node_trace["marker"]["color"] += tuple(["rgb" +  str(tuple(colors[self.G.nodes()[node][color]])) ])   #tuple([self.G.nodes()[node][color]])
 
             if symbol is None:
                 node_trace["marker"]["symbol"] = "circle"
             else:
                 node_trace["marker"]["symbol"] += tuple([self.G.nodes()[node][symbol]])
 
-            node_trace["text"] += tuple(["<b>" + node + "</b>"])
+            # node_trace["text"] += tuple(["<b>" + node + "</b>"])
+            node_trace["text"] += tuple([node])
             node_trace["marker"]["opacity"] += tuple([0.6])
             node_trace["marker"]["size"] += tuple([self.G.nodes()[node][size]])
-
+            if self.G.nodes()[node][size]<bin_number*.75:
+                node_trace["textfont"]["size"] += tuple([1])
+                node_trace["textfont"]["color"] += tuple(["rgba(70,70,70,0)"])
+            else:
+                node_trace["textfont"]["size"]  += tuple([self.G.nodes()[node][size]/bin_number*25])
+                node_trace["textfont"]["color"] += tuple(["rgba(70,70,70,1)"])
+            
         # Customize layout
         layout = go.Layout(
             height=height_att,
