@@ -3,6 +3,7 @@
 update.sh
 commit.sh
 ignore.sh
+setup.py
 
 
 test/
