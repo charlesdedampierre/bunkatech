@@ -7,11 +7,13 @@ import community as community_louvain
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
+from umap import UMAP
 from node2vec import Node2Vec
 import plotly.graph_objects as go
+import plotly.express as px
 from matplotlib import cm
 from ..basic_class import BasicSemantics
-from logging import getLogger, WARNING
+from logging import getLogger, WARNING, INFO
 
 
 class SemanticNetworks(BasicSemantics):
@@ -46,7 +48,6 @@ class SemanticNetworks(BasicSemantics):
         terms_multiprocessing=True,
         docs_multiprocessing=True,
     ) -> None:
-
         BasicSemantics.__init__(
             self,
             data=data,
@@ -129,7 +130,6 @@ class SemanticNetworks(BasicSemantics):
         return fig
 
     def coocurrence_multiple(self) -> pd.DataFrame:
-
         fin = pd.DataFrame()
         for var in self.variables:
             df_var = self.data_network[[self.index_var, var]]
@@ -154,7 +154,6 @@ class SemanticNetworks(BasicSemantics):
         return self.edges
 
     def get_top_nodes(self, top_n=300):
-
         # filter by top_n regarding their size
         nodes_attr = self.fin[[self.index_var, "data", "entity"]]
         nodes_attr = (
@@ -175,7 +174,6 @@ class SemanticNetworks(BasicSemantics):
         return self.edges
 
     def weight_to_similarity(self, global_filter: float = 0.7, n_neighbours: int = 6):
-
         """
 
         This functions transform an edge list with weights into an edge list whose weights are cosine similarity
@@ -249,13 +247,11 @@ class SemanticNetworks(BasicSemantics):
         """
 
         def add_black_holes(G, density=2):
-
             # Add centroids in the middle of every 'community' and connects it to
             # all the nodes in the 'community'
 
             df_node = pd.DataFrame.from_dict(dict(G.nodes(data=True)), orient="index")
             for community_number in set(df_node.community):
-
                 G.add_node(
                     f"network_center_{community_number}",
                     community=community_number,
@@ -274,11 +270,62 @@ class SemanticNetworks(BasicSemantics):
 
             return G
 
-        #word2vec used in node2vec has loads of logger events that can't be easily reduced by setting low verbose,
-        #instead we'll reduce the overall logging level
-        root_logger = getLogger()
-        root_logger.setLevel(WARNING)
-        
+        def project_on_doc(self):
+            #########################################################################################
+            # someone with actual coding skills should rewrite this
+            #########################################################################################
+            # for each document get the sum of distances in each cluster and assign the max
+            # the name should be inverse distance
+            self.df_node["distance"] = 1 / np.log(1 + self.df_node["centrality"])
+            self.data_network = self.data_network.merge(
+                self.df_node, left_on=["main form"], right_index=True
+            )
+
+            x = (
+                self.data_network.groupby([self.index_var, "community"])["distance"]
+                .sum()
+                .reset_index(level=("community", self.index_var))
+            )
+            x.index.name = "index_new"
+            x = x.rename(columns={"community": "community_forced"})
+
+            forced = x.loc[x.groupby(self.index_var)["distance"].idxmax().values]
+            forced = forced.set_index(self.index_var)
+
+            # add terms and community to df data
+            data_clusters = self.data.copy().set_index(self.index_var)
+
+            x = (
+                self.data_network.groupby(self.index_var)["main form"]
+                .apply(set)
+                .apply(list)
+            )
+
+            data_clusters = data_clusters.merge(x, how="outer", on=self.index_var)
+            data_clusters = data_clusters.merge(
+                forced["community_forced"],
+                how="outer",
+                left_on=self.index_var,
+                right_index=True,
+            )
+
+            xx = (
+                self.data_network.groupby([self.index_var])["community"]
+                .apply(set)
+                .apply(list)
+            )
+            xx.index.name = "index_new"
+            data_clusters = data_clusters.merge(
+                xx, how="outer", left_on=self.index_var, right_index=True
+            )
+
+            return data_clusters
+
+        # word2vec used in node2vec has loads of logger events that can't be easily reduced by setting low verbose,
+        # instead we'll decrease the overall logging level
+        root_logger = getLogger()  # save current logging level to change it back later
+        root_logger_oldlvl = root_logger.level
+
         # Create Graph Object
         G = nx.from_pandas_edgelist(
             self.new_edge, source="source", target="target", edge_attr="weight"
@@ -290,11 +337,12 @@ class SemanticNetworks(BasicSemantics):
             centrality, orient="index", columns=["centrality"]
         )
 
-        centrality["centrality"] = pd.qcut(
-            centrality["centrality"].rank(method="first"),
-            bin_number,
-            labels=range(1, bin_number + 1),
-        )
+        # for the arousal project we want to keep non-normalised centrality values
+        # centrality["centrality"] = pd.qcut(
+        #     centrality["centrality"].rank(method="first"),
+        #     bin_number,
+        #     labels=range(1, bin_number + 1),
+        # )
 
         # add centrality attribute to the G object
         node_attr_centrality = centrality.to_dict("index")
@@ -311,7 +359,7 @@ class SemanticNetworks(BasicSemantics):
             # Add community attribute to the G object
             node_attr_community = partition.to_dict("index")
             nx.set_node_attributes(G, node_attr_community)
-            G = add_black_holes(G, density=density)
+            # G = add_black_holes(G, density=density)
 
             # Compute the coordinate of nodes based on specific force algorithm
             pos_ = nx.spring_layout(G)
@@ -320,8 +368,8 @@ class SemanticNetworks(BasicSemantics):
             self.df_embeddings.index = G.nodes()
 
         elif method == "node2vec":
-
-            node2vec = Node2Vec(G, dimensions=700, workers=multiprocessing.cpu_count(), seed=42)
+            root_logger.setLevel(WARNING)
+            node2vec = Node2Vec(G, dimensions=700, workers=multiprocessing.cpu_count())
             model = node2vec.fit(window=30, min_count=1)
             nodes = list(map(str, G.nodes()))
             embeddings = np.array([model.wv[x] for x in nodes])
@@ -329,6 +377,7 @@ class SemanticNetworks(BasicSemantics):
             # Get the community with embeddings
             cluster_model = KMeans(n_clusters=n_cluster)
             community = cluster_model.fit_predict(embeddings)
+            self.wcss = cluster_model.inertia_
 
             partition = pd.DataFrame(index=nodes)
             partition["community"] = community
@@ -336,24 +385,54 @@ class SemanticNetworks(BasicSemantics):
             # Add community attribute to the G object
             node_attr_community = partition.to_dict("index")
             nx.set_node_attributes(G, node_attr_community)
-            G = add_black_holes(G, density=density)
+            # G = add_black_holes(G, density=density)
 
             # Re-compute to add the new nodes and get their
-            node2vec = Node2Vec(G, dimensions=700, workers=multiprocessing.cpu_count(), seed=42)
-            model = node2vec.fit(window=30, min_count=1)
-            nodes = list(map(str, G.nodes()))
-            embeddings = np.array([model.wv[x] for x in nodes])
+            # node2vec = Node2Vec(G, dimensions=700, workers=multiprocessing.cpu_count())
+            # model = node2vec.fit(window=30, min_count=1)
+            # nodes = list(map(str, G.nodes()))
+            # embeddings = np.array([model.wv[x] for x in nodes])
 
             # Get the 2D embeddings to display data
-            tsne = TSNE(n_components=2, random_state=42)
-            embeddings = tsne.fit_transform(embeddings)
+            # tsne = TSNE(n_components=2)
+            # embeddings = tsne.fit_transform(embeddings)
+            # pos_ = {nodes[x]: embeddings[x] for x in range(len(nodes))}
+
+            self.df_embeddings_700dim = pd.DataFrame(embeddings)
+            self.df_embeddings_700dim.index = nodes
+
+            # Get the 2D embeddings to display data
+            umap_model = UMAP(n_components=2)
+            embeddings = umap_model.fit_transform(embeddings)
             pos_ = {nodes[x]: embeddings[x] for x in range(len(nodes))}
 
             self.df_embeddings = pd.DataFrame(embeddings)
             self.df_embeddings.index = nodes
+            root_logger.setLevel(root_logger_oldlvl)
 
         self.G = G
         self.pos_ = pos_
+
+        self.df_node = pd.DataFrame.from_dict(
+            dict(self.G.nodes(data=True)), orient="index"
+        )
+        self.data_clusters = project_on_doc(self)
+
+    def recluster(
+        self,
+        n_cluster: int = 10,
+    ):
+        # Get the community with embeddings
+        cluster_model = KMeans(n_clusters=n_cluster)
+        community = cluster_model.fit_predict(self.df_embeddings_700dim)
+        self.wcss = cluster_model.inertia_
+
+        partition = pd.DataFrame(index=self.df_embeddings_700dim.index)
+        partition["community"] = community
+
+        # Add community attribute to the G object
+        node_attr_community = partition.to_dict("index")
+        nx.set_node_attributes(self.G, node_attr_community)
 
         self.df_node = pd.DataFrame.from_dict(
             dict(self.G.nodes(data=True)), orient="index"
@@ -369,7 +448,7 @@ class SemanticNetworks(BasicSemantics):
         height_att=1000,
         width_att=1000,
         template="plotly_dark",
-        bin_number = 30,
+        bin_number=30,
     ):
         """Output a Graph
 
@@ -378,7 +457,7 @@ class SemanticNetworks(BasicSemantics):
             size (str, optional): chose in the nodes attribute the column_name for size. Defaults to "size".
             symbol ([type], optional): [description]. Defaults to None.
         """
-        
+
         len(self.df_node["community"].unique())
         # Deal the size of the centroids (as they do not come from the nodes_attr)
         clusters = [
@@ -389,7 +468,7 @@ class SemanticNetworks(BasicSemantics):
         # Add the entities and the size
         df_nodes = self.nodes_attr.set_index("data")
         df_nodes["entity"] = df_nodes["entity"].astype("category").cat.codes
-        #bin  umber get's over writtern
+        # bin  umber get's over writtern
         # bin_number = 30
         df_nodes["size"] = pd.cut(
             df_nodes["size"].rank(method="first"),
@@ -406,21 +485,19 @@ class SemanticNetworks(BasicSemantics):
         self.df_node = pd.merge(
             self.df_embeddings, self.df_node, left_index=True, right_index=True
         )
-        
-        #gen n_col=n_communities from cmap for plotting
-        colors = cm.get_cmap('gist_earth')
-        colors = colors(np.linspace(0,1,len(self.df_node["community"].unique())+2))*255
-        #get rid of black and white
+
+        # gen n_col=n_communities from cmap for plotting
+        colors = cm.get_cmap("gist_earth")
+        colors = (
+            colors(np.linspace(0, 1, len(self.df_node["community"].unique()) + 2)) * 255
+        )
+        # get rid of black and white
         colors = colors[1:-1]
-        #change opacity
-
-
-
+        # change opacity
 
         # For each edge, make an edge_trace, append to list
         edge_trace = []
         for edge in self.G.edges():
-
             if self.G.edges()[edge]["weight"] > 0:
                 x0, y0 = self.pos_[edge[0]]
                 x1, y1 = self.pos_[edge[1]]
@@ -437,20 +514,24 @@ class SemanticNetworks(BasicSemantics):
                 else:
                     # The bigger the node, the bigger the edge width
                     width = edge_size * self.G.edges()[edge]["weight"] ** 1.75
-                    width = 2;
-                
-                #depending on the edge value, change the color of the edge to a closser community
-                
+                    width = 2
+
+                # depending on the edge value, change the color of the edge to a closser community
+
                 if self.G.edges()[edge]["weight"] < 0.5:
-                    col = str('rgb' +  str(tuple(colors[self.G.nodes()[edge[0]][color]])))
+                    col = str(
+                        "rgb" + str(tuple(colors[self.G.nodes()[edge[0]][color]]))
+                    )
                 else:
-                    col = str('rgb' +  str(tuple(colors[self.G.nodes()[edge[1]][color]])))
-                    
+                    col = str(
+                        "rgb" + str(tuple(colors[self.G.nodes()[edge[1]][color]]))
+                    )
+
                 trace = go.Scatter(
                     x=[x0, x1, None],
                     y=[y0, y1, None],
                     line=dict(width=width, color=col),
-                    opacity = 0.5,
+                    opacity=0.5,
                     # line_color = col,
                     # line_width = width,
                     mode="lines",
@@ -465,7 +546,7 @@ class SemanticNetworks(BasicSemantics):
             text=[],
             textposition="top left",
             # textfont_size=textfont_size,
-            textfont = dict(family="sans serif", size=[], color=[]),
+            textfont=dict(family="sans serif", size=[], color=[]),
             mode="markers+text",
             hoverinfo="text",
             marker=dict(color=[], size=[], line=None, opacity=[], symbol=[]),
@@ -473,14 +554,15 @@ class SemanticNetworks(BasicSemantics):
 
         # For each nodeget the position and size and add to the node_trace
         for node in self.G.nodes():
-
             if "network_center_" in node:
                 continue
 
             x, y = self.pos_[node]
             node_trace["x"] += tuple([x])
             node_trace["y"] += tuple([y])
-            node_trace["marker"]["color"] += tuple(["rgb" +  str(tuple(colors[self.G.nodes()[node][color]])) ])   #tuple([self.G.nodes()[node][color]])
+            node_trace["marker"]["color"] += tuple(
+                ["rgb" + str(tuple(colors[self.G.nodes()[node][color]]))]
+            )  # tuple([self.G.nodes()[node][color]])
 
             if symbol is None:
                 node_trace["marker"]["symbol"] = "circle"
@@ -491,13 +573,15 @@ class SemanticNetworks(BasicSemantics):
             node_trace["text"] += tuple([node])
             node_trace["marker"]["opacity"] += tuple([0.6])
             node_trace["marker"]["size"] += tuple([self.G.nodes()[node][size]])
-            if self.G.nodes()[node][size]<bin_number*.75:
+            if self.G.nodes()[node][size] < bin_number * 0.75:
                 node_trace["textfont"]["size"] += tuple([1])
                 node_trace["textfont"]["color"] += tuple(["rgba(70,70,70,0)"])
             else:
-                node_trace["textfont"]["size"]  += tuple([self.G.nodes()[node][size]/bin_number*25])
+                node_trace["textfont"]["size"] += tuple(
+                    [self.G.nodes()[node][size] / bin_number * 25]
+                )
                 node_trace["textfont"]["color"] += tuple(["rgba(70,70,70,1)"])
-            
+
         # Customize layout
         layout = go.Layout(
             height=height_att,

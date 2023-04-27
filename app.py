@@ -125,8 +125,7 @@ if module_choice == "Semantic Nestedness":
         )
 
         query_input = st.text_input(
-            label="Explore the map by searching for terms",
-            placeholder="Write a Query",
+            label="Explore the map by searching for terms", placeholder="Write a Query",
         )
 
         if query_input:
